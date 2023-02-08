@@ -1,9 +1,8 @@
-package com.lucas.redditclone.request.user;
+package com.lucas.redditclone.dto.request.user;
 
 import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,8 +23,7 @@ public class UserRequest {
 	@Email(message = "the field 'email' must be a valid email")
 	private String email;
 	@NotBlank(message = "the field 'password' is required")
-	@Min(value = 6, message = "the field 'password' must be at least 6 characters")
-	@Max(value = 30, message = "the field 'password' must be at most 30 characters")
+	@Size(min = 6, max = 48, message = "the field 'password' must be at least {min} characters")
 	private String password;
 	private boolean enabled;
 	private Instant createdAt;
