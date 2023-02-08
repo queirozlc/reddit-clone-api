@@ -12,4 +12,6 @@ public interface AuthService {
 	void sendVerificationEmail(User user, String token);
 
 	void verifyAccount(String token);
+
+	void refreshAccount(String token);
 }

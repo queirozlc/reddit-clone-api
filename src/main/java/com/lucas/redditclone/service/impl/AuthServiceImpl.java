@@ -4,6 +4,7 @@ import com.lucas.redditclone.dto.request.user.UserRequest;
 import com.lucas.redditclone.dto.response.MailResponseBody;
 import com.lucas.redditclone.entity.User;
 import com.lucas.redditclone.entity.VerificationToken;
+import com.lucas.redditclone.exception.bad_request.BadRequestException;
 import com.lucas.redditclone.mapper.UserMapper;
 import com.lucas.redditclone.repository.UserRepository;
 import com.lucas.redditclone.repository.VerificationTokenRepository;
@@ -71,13 +72,41 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public void verifyAccount(String token) {
-		VerificationToken verificationToken = verificationTokenRepository
+		var verificationToken = verificationTokenRepository
 				.findByToken(token)
-				.orElseThrow(() -> new RuntimeException("Token invalid."));
+				.orElseThrow(() -> new BadRequestException("Token invalid."));
+		var user = userRepository.findByUsername(verificationToken.getUser().getUsername())
+				.orElseThrow(() -> new BadRequestException("User not found."));
 
 		if (verificationToken.getExpirationDate().isBefore(LocalDateTime.now())) {
-			throw new RuntimeException("Token expired.");
+			throw new BadRequestException("Token expired.");
 		}
-		
+
+		if (verificationToken.getUser().isEnabled()) {
+			throw new BadRequestException("Your account is already enabled.");
+		}
+
+		user.setEnabled(true);
+		userRepository.save(user);
+	}
+
+	@Override
+	public void refreshAccount(String token) {
+		var verificationToken = verificationTokenRepository
+				.findByToken(token)
+				.orElseThrow(() -> new BadRequestException("Token invalid."));
+		var user = userRepository.findByUsername(verificationToken.getUser().getUsername())
+				.orElseThrow(() -> new BadRequestException("User not found."));
+
+		if (verificationToken.getExpirationDate().isAfter(LocalDateTime.now())) {
+			throw new BadRequestException("Your verification token still valid, check the email.");
+		}
+
+		if (verificationToken.getUser().isEnabled()) {
+			throw new BadRequestException("Your account is already enabled.");
+		}
+
+		String tokenRefresh = generateVerificationToken(user);
+		sendVerificationEmail(user, tokenRefresh);
 	}
 }

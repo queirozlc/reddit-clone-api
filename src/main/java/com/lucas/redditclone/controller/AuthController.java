@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 	private final AuthService authService;
@@ -27,4 +27,10 @@ public class AuthController {
 				.body("Your account has been verified successfully.");
 	}
 
+	@GetMapping("/verify/refresh/{token}")
+	public ResponseEntity<String> refreshAccount(@PathVariable String token) {
+		authService.refreshAccount(token);
+		return ResponseEntity.ok()
+				.body("We send you another email to verify your account. Please check your inbox.");
+	}
 }
