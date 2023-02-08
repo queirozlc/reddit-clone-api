@@ -6,7 +6,7 @@ import org.hibernate.Hibernate;
 
 import java.io.Serial;
 import java.io.Serializable;
-import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -29,7 +29,7 @@ public class VerificationToken implements Serializable {
 	@OneToOne(fetch = FetchType.LAZY, orphanRemoval = true)
 	@JoinColumn(name = "user_id")
 	private User user;
-	private Instant expirationDate;
+	private LocalDateTime expirationDate;
 
 	@Override
 	public boolean equals(Object o) {

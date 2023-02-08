@@ -1,10 +1,15 @@
 package com.lucas.redditclone.service;
 
+import com.lucas.redditclone.dto.request.user.UserRequest;
 import com.lucas.redditclone.entity.User;
-import com.lucas.redditclone.request.user.UserRequest;
 
 public interface AuthService {
 
-	User signUp(UserRequest userRequest);
+	void signUp(UserRequest userRequest);
 
+	String generateVerificationToken(User user);
+
+	void sendVerificationEmail(User user, String token);
+
+	void verifyAccount(String token);
 }

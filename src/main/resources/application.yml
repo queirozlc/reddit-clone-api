@@ -7,6 +7,25 @@ spring:
   jpa:
     hibernate:
       ddl-auto: update
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: reddit.clone.io@gmail.com
+    password: tfrdecdidsmysyhc
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          ssl:
+            enable: false
+    default-encoding: UTF-8
+    test-connection: true
 logging:
   level:
     sql: debug
+server:
+  error:
+    include-stacktrace: on_param
