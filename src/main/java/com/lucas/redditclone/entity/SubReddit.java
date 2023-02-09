@@ -26,6 +26,7 @@ public class SubReddit implements Serializable {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	@Column(name = "id", nullable = false)
 	private UUID id;
+	@Column(unique = true)
 	private String name;
 	private String description;
 	@OneToMany(mappedBy = "subReddit", orphanRemoval = true)
