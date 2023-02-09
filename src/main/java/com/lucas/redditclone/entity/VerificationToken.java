@@ -26,7 +26,7 @@ public class VerificationToken implements Serializable {
 	@Column(name = "id", nullable = false)
 	private UUID id;
 	private String token;
-	@OneToOne(fetch = FetchType.LAZY, orphanRemoval = true)
+	@OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id")
 	private User user;
 	private LocalDateTime expirationDate;
