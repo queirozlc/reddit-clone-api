@@ -1,6 +1,8 @@
 package com.lucas.redditclone.controller;
 
+import com.lucas.redditclone.dto.request.user.SignInRequest;
 import com.lucas.redditclone.dto.request.user.UserRequest;
+import com.lucas.redditclone.dto.response.SignInResponse;
 import com.lucas.redditclone.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -8,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 	private final AuthService authService;
@@ -18,6 +20,11 @@ public class AuthController {
 		authService.signUp(userRequest);
 		return ResponseEntity.ok()
 				.body("User created successfully, check the mail box to activate your account.");
+	}
+
+	@PostMapping("/login")
+	public ResponseEntity<SignInResponse> login(@RequestBody @Valid SignInRequest signInRequest) {
+		return ResponseEntity.ok(authService.signIn(signInRequest));
 	}
 
 	@GetMapping("/verify/{token}")

@@ -1,16 +1,27 @@
 package com.lucas.redditclone.service.impl;
 
+import com.lucas.redditclone.dto.request.user.SignInRequest;
 import com.lucas.redditclone.dto.request.user.UserRequest;
 import com.lucas.redditclone.dto.response.MailResponseBody;
+import com.lucas.redditclone.dto.response.SignInResponse;
+import com.lucas.redditclone.entity.Role;
 import com.lucas.redditclone.entity.User;
 import com.lucas.redditclone.entity.VerificationToken;
+import com.lucas.redditclone.entity.enums.RoleName;
 import com.lucas.redditclone.exception.bad_request.BadRequestException;
+import com.lucas.redditclone.exception.not_found.NotFoundException;
 import com.lucas.redditclone.mapper.UserMapper;
+import com.lucas.redditclone.repository.RoleRepository;
 import com.lucas.redditclone.repository.UserRepository;
 import com.lucas.redditclone.repository.VerificationTokenRepository;
 import com.lucas.redditclone.service.AuthService;
+import com.lucas.redditclone.service.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +34,17 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Transactional
 public class AuthServiceImpl implements AuthService {
-	@Value("${spring.mail.username}")
-	private String EMAIL_FROM;
+	private static final String USER_NOT_FOUND = "User not found.";
+	private final AuthenticationManager authenticationManager;
+	private final JwtService jwtService;
 	private final PasswordEncoder passwordEncoder;
 	private final UserRepository userRepository;
 	private final VerificationTokenRepository verificationTokenRepository;
 	private final UserMapper userMapper;
 	private final EmailService emailService;
+	private final RoleRepository roleRepository;
+	@Value("${spring.mail.username}")
+	private String EMAIL_FROM;
 
 	@Override
 	public void signUp(UserRequest userRequest) {
@@ -76,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
 				.findByToken(token)
 				.orElseThrow(() -> new BadRequestException("Token invalid."));
 		var user = userRepository.findByUsername(verificationToken.getUser().getUsername())
-				.orElseThrow(() -> new BadRequestException("User not found."));
+				.orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
 
 		if (verificationToken.getExpirationDate().isBefore(LocalDateTime.now())) {
 			throw new BadRequestException("Token expired.");
@@ -86,8 +101,7 @@ public class AuthServiceImpl implements AuthService {
 			throw new BadRequestException("Your account is already enabled.");
 		}
 
-		user.setEnabled(true);
-		userRepository.save(user);
+		updateRegister(verificationToken, user);
 	}
 
 	@Override
@@ -96,7 +110,7 @@ public class AuthServiceImpl implements AuthService {
 				.findByToken(token)
 				.orElseThrow(() -> new BadRequestException("Token invalid."));
 		var user = userRepository.findByUsername(verificationToken.getUser().getUsername())
-				.orElseThrow(() -> new BadRequestException("User not found."));
+				.orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
 
 		if (verificationToken.getExpirationDate().isAfter(LocalDateTime.now())) {
 			throw new BadRequestException("Your verification token still valid, check the email.");
@@ -108,5 +122,39 @@ public class AuthServiceImpl implements AuthService {
 
 		String tokenRefresh = generateVerificationToken(user);
 		sendVerificationEmail(user, tokenRefresh);
+	}
+
+	@Override
+	public SignInResponse signIn(SignInRequest signInRequest) {
+		User userToAuthenticate = userRepository
+				.findByUsername(signInRequest.getUsername())
+				.orElseThrow(() -> new BadRequestException("Username or password incorrect."));
+
+		if (!userToAuthenticate.isEnabled())
+			throw new BadRequestException("Your account is not enabled. Please verify your account.");
+
+		if (!passwordEncoder.matches(signInRequest.getPassword(), userToAuthenticate.getPassword()))
+			throw new BadRequestException("Username or password incorrect.");
+
+		Authentication authenticate = authenticationManager
+				.authenticate(new UsernamePasswordAuthenticationToken(signInRequest.getUsername(),
+						signInRequest.getPassword()));
+
+		SecurityContextHolder.getContext().setAuthentication(authenticate);
+		String token = jwtService.generateToken(authenticate);
+		return SignInResponse
+				.builder()
+				.token(token)
+				.username(userToAuthenticate.getUsername())
+				.build();
+	}
+
+	private void updateRegister(VerificationToken verificationToken, User user) {
+		Role roleUser = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow(() -> new NotFoundException("Role " +
+				"not found."));
+		user.setEnabled(true);
+		user.setRole(roleUser);
+		userRepository.save(user);
+		verificationTokenRepository.delete(verificationToken);
 	}
 }
