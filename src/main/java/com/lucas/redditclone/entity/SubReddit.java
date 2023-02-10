@@ -32,10 +32,11 @@ public class SubReddit implements Serializable {
 	@OneToMany(mappedBy = "subReddit", orphanRemoval = true)
 	@ToString.Exclude
 	private List<Post> posts;
-	@ManyToOne(fetch = FetchType.LAZY)
+	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "user_id")
 	private User user;
 	private Instant createdAt;
+	private Instant updatedAt;
 
 	@Override
 	public boolean equals(Object o) {

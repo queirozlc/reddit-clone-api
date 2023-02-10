@@ -16,7 +16,7 @@ import java.util.UUID;
 @NoArgsConstructor
 public class SubRedditRequestBody {
 	@NotBlank(message = "Field name is required.")
-	@Pattern(regexp = "(?:^| )(/?r/[a-z]+)", message = "Invalid name. Try something like that: 'r/memes'.")
+	@Pattern(regexp = "(?:^| )(/?r/[a-zA-Z]+)", message = "Invalid name. Try something like that: 'r/memes'.")
 	private String name;
 	@NotBlank(message = "Field description is required.")
 	private String description;
