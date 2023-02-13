@@ -16,7 +16,7 @@ public interface SubRedditMapper {
 	@Mapping(target = "user", ignore = true)
 	@Mapping(target = "posts", ignore = true)
 	@Mapping(target = "id", ignore = true)
-	@Mapping(target = "createdAt", ignore = true)
+	@Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
 	@Mapping(source = "userId", target = "user.id")
 	SubReddit toSubReddit(SubRedditRequestBody subRedditRequestBody);
 
@@ -32,4 +32,5 @@ public interface SubRedditMapper {
 	default String getOwnerUsername(SubReddit subReddit) {
 		return subReddit.getUser().getUsername();
 	}
+
 }

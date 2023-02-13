@@ -1,4 +1,4 @@
-package com.lucas.redditclone.service.impl;
+package com.lucas.redditclone.service.subreddit;
 
 import com.lucas.redditclone.dto.request.subreddit.SubRedditRequestBody;
 import com.lucas.redditclone.dto.response.SubRedditResponseBody;
@@ -8,8 +8,9 @@ import com.lucas.redditclone.exception.not_found.NotFoundException;
 import com.lucas.redditclone.mapper.SubRedditMapper;
 import com.lucas.redditclone.repository.SubRedditRepository;
 import com.lucas.redditclone.repository.UserRepository;
-import com.lucas.redditclone.service.SubRedditService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,7 +38,6 @@ public class SubRedditServiceImpl implements SubRedditService {
 				.orElseThrow(() -> new BadRequestException("User not found."));
 
 		subReddit.setUser(owner);
-		subReddit.setCreatedAt(Instant.now());
 		SubReddit subRedditSaved = subRedditRepository.save(subReddit);
 		return mapper.toSubRedditResponseBody(subRedditSaved);
 	}
@@ -76,4 +76,10 @@ public class SubRedditServiceImpl implements SubRedditService {
 		return mapper.toSubRedditResponseBody(subRedditUpdated);
 	}
 
+	@Override
+	public Page<SubRedditResponseBody> getAllSubRedditByNamePageable(String name, Pageable pageable) {
+		Page<SubReddit> subReddits = subRedditRepository
+				.findAllByNameLikeIgnoreCase(name, pageable);
+		return subReddits.map(mapper::toSubRedditResponseBody);
+	}
 }
