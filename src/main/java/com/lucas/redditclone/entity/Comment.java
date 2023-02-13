@@ -33,6 +33,7 @@ public class Comment implements Serializable {
 	@JoinColumn(name = "user_id")
 	private User user;
 	private Instant createdAt;
+	private Instant updatedAt;
 
 	@Override
 	public boolean equals(Object o) {
