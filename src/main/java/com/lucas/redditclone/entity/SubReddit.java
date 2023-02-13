@@ -30,7 +30,6 @@ public class SubReddit implements Serializable {
 	private String name;
 	private String description;
 	@OneToMany(mappedBy = "subReddit", orphanRemoval = true)
-	@ToString.Exclude
 	private List<Post> posts;
 	@ManyToOne(fetch = FetchType.EAGER)
 	@JoinColumn(name = "user_id")
