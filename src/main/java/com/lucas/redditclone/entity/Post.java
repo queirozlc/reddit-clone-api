@@ -23,15 +23,16 @@ public class Post implements Serializable {
 	@GeneratedValue(strategy = GenerationType.UUID)
 	@Column(name = "id", nullable = false)
 	private UUID id;
-	private String postName;
+	private String title;
 	private String url;
-	private String description;
-	private int voteCount;
+	@Column(columnDefinition = "TEXT")
+	private String body;
+	private Integer voteCount;
 	private Instant createdAt;
+	private Instant updatedAt;
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "sub_reddit_id")
 	private SubReddit subReddit;
-
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "user_id")
 	private User user;
