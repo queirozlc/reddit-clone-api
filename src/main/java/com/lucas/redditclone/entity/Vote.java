@@ -26,7 +26,7 @@ public class Vote implements Serializable {
 	@Column(name = "id", nullable = false)
 	private UUID id;
 	@ToString.Include
-	@Enumerated
+	@Enumerated(EnumType.ORDINAL)
 	@Column(name = "vote_type")
 	private VoteType voteType;
 	@ManyToOne(fetch = FetchType.LAZY)
