@@ -27,10 +27,10 @@ public class Comment implements Serializable {
 	private UUID id;
 	private String body;
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "post_id")
+	@JoinColumn(name = "post_id", nullable = false)
 	private Post post;
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id")
+	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 	private Instant createdAt;
 	private Instant updatedAt;
