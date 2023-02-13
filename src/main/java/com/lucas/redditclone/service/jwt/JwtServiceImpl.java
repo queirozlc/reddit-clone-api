@@ -1,7 +1,6 @@
-package com.lucas.redditclone.service.impl;
+package com.lucas.redditclone.service.jwt;
 
 import com.lucas.redditclone.entity.User;
-import com.lucas.redditclone.service.JwtService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
