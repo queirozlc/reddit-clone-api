@@ -13,7 +13,9 @@ public class PostResponseBody {
 	private String title;
 	private String body;
 	private String url;
-	private int voteCount;
 	private String subRedditName;
 	private String ownerUsername;
+	private String timeAgo;
+	private int voteCount;
+	private int numberOfComments;
 }
