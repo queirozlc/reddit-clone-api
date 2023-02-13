@@ -1,4 +1,4 @@
-package com.lucas.redditclone.service;
+package com.lucas.redditclone.service.jwt;
 
 import com.lucas.redditclone.entity.User;
 import io.jsonwebtoken.Claims;

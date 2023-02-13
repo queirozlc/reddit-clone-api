@@ -1,4 +1,4 @@
-package com.lucas.redditclone.service;
+package com.lucas.redditclone.service.auth;
 
 import com.lucas.redditclone.dto.request.user.SignInRequest;
 import com.lucas.redditclone.dto.request.user.UserRequest;

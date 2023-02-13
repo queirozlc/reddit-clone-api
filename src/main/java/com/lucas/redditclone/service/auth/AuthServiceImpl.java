@@ -1,4 +1,4 @@
-package com.lucas.redditclone.service.impl;
+package com.lucas.redditclone.service.auth;
 
 import com.lucas.redditclone.dto.request.user.SignInRequest;
 import com.lucas.redditclone.dto.request.user.UserRequest;
@@ -14,8 +14,8 @@ import com.lucas.redditclone.mapper.UserMapper;
 import com.lucas.redditclone.repository.RoleRepository;
 import com.lucas.redditclone.repository.UserRepository;
 import com.lucas.redditclone.repository.VerificationTokenRepository;
-import com.lucas.redditclone.service.AuthService;
-import com.lucas.redditclone.service.JwtService;
+import com.lucas.redditclone.service.impl.EmailService;
+import com.lucas.redditclone.service.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -71,9 +71,9 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public void sendVerificationEmail(User user, String verificationToken) {
-		String verificationUrl = "http://localhost:8080/auth/verify/" + verificationToken;
-		String subject = "Reddit Clone - Verify your account";
-		String message = "Please click on the link below to verify your account:\n" + verificationUrl;
+		var verificationUrl = "http://localhost:8080/auth/verify/" + verificationToken;
+		var subject = "Reddit Clone - Verify your account";
+		var message = "Please click on the link below to verify your account:\n" + verificationUrl;
 		var mailResponseBody = MailResponseBody
 				.builder()
 				.emailTo(user.getEmail())

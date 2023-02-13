@@ -3,7 +3,7 @@ package com.lucas.redditclone.controller;
 import com.lucas.redditclone.dto.request.user.SignInRequest;
 import com.lucas.redditclone.dto.request.user.UserRequest;
 import com.lucas.redditclone.dto.response.SignInResponse;
-import com.lucas.redditclone.service.AuthService;
+import com.lucas.redditclone.service.auth.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

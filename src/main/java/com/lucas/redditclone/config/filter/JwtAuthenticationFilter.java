@@ -1,7 +1,7 @@
 package com.lucas.redditclone.config.filter;
 
 import com.lucas.redditclone.entity.User;
-import com.lucas.redditclone.service.JwtService;
+import com.lucas.redditclone.service.jwt.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
