@@ -66,6 +66,13 @@ public class CommentServiceImpl implements CommentService {
 		return comments.map(mapper::toCommentResponseBody);
 	}
 
+	@Override
+	public void delete(UUID id) {
+		Comment comment = commentRepository.findById(id)
+				.orElseThrow(() -> new BadRequestException("Comment not found"));
+		commentRepository.delete(comment);
+	}
+
 	private void sendEmail(Comment commentSaved) {
 		var subject = "No reply: New comment on your post. Take a look :)";
 		var message = commentSaved.getUser().getUsername() + " made a comment on your post: " + commentSaved

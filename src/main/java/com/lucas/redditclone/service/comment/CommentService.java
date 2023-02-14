@@ -15,4 +15,6 @@ public interface CommentService {
 	Page<CommentResponseBody> getAllCommentsByPost(UUID id, Pageable pageable);
 
 	Page<CommentResponseBody> getAllUserComments(String username, Pageable pageable);
+
+	void delete(UUID id);
 }

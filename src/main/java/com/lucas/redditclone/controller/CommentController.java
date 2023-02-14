@@ -35,4 +35,10 @@ public class CommentController {
 	public ResponseEntity<Page<CommentResponseBody>> getPostComments(@PathVariable UUID id, Pageable pageable) {
 		return ResponseEntity.ok(commentService.getAllCommentsByPost(id, pageable));
 	}
+
+	@DeleteMapping("/{id}")
+	public ResponseEntity<String> deleteComment(@PathVariable UUID id) {
+		commentService.delete(id);
+		return ResponseEntity.ok("Comment deleted successfully.");
+	}
 }
