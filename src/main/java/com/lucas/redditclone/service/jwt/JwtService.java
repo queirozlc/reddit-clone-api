@@ -2,13 +2,12 @@ package com.lucas.redditclone.service.jwt;
 
 import com.lucas.redditclone.entity.User;
 import io.jsonwebtoken.Claims;
-import org.springframework.security.core.Authentication;
 
 import java.util.Date;
 import java.util.function.Function;
 
 public interface JwtService {
-	String generateToken(Authentication authentication);
+	String generateToken(User user);
 
 	<T> T extractClaim(String token, Function<Claims, T> claimsResolver);
 
