@@ -6,6 +6,8 @@ import com.lucas.redditclone.exception.mail_sender.MailSenderException;
 import com.lucas.redditclone.exception.mail_sender.MailSenderExceptionDetails;
 import com.lucas.redditclone.exception.not_found.NotFoundException;
 import com.lucas.redditclone.exception.not_found.NotFoundExceptionDetails;
+import com.lucas.redditclone.exception.unauthorized.UnauthorizedException;
+import com.lucas.redditclone.exception.unauthorized.UnauthorizedExceptionDetails;
 import com.lucas.redditclone.exception.validation.ValidationExceptionDetails;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -86,5 +88,18 @@ public class RestExceptionHandler extends ResponseEntityExceptionHandler {
 				.timestamp(LocalDateTime.now())
 				.build();
 		return new ResponseEntity<>(exceptionDetails, HttpStatus.BAD_REQUEST);
+	}
+
+	@ExceptionHandler(UnauthorizedException.class)
+	public ResponseEntity<UnauthorizedExceptionDetails> handleUnauthorizedException(UnauthorizedException e) {
+		var exceptionDetails = UnauthorizedExceptionDetails
+				.builder()
+				.title("Unauthorized Exception. Check api documentation.")
+				.details(e.getClass().getName())
+				.status(UNAUTHORIZED.value())
+				.message(e.getMessage())
+				.timestamp(LocalDateTime.now())
+				.build();
+		return new ResponseEntity<>(exceptionDetails, HttpStatus.UNAUTHORIZED);
 	}
 }
