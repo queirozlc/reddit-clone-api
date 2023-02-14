@@ -5,6 +5,8 @@ import com.lucas.redditclone.dto.request.user.SignInRequest;
 import com.lucas.redditclone.dto.request.user.UserRequest;
 import com.lucas.redditclone.dto.response.SignInResponse;
 import com.lucas.redditclone.dto.response.refresh_token.RefreshTokenResponseBody;
+import com.lucas.redditclone.exception.bad_request.BadRequestException;
+import com.lucas.redditclone.repository.UserRepository;
 import com.lucas.redditclone.service.auth.AuthService;
 import com.lucas.redditclone.service.refresh_token.RefreshTokenService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -20,9 +22,13 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 	private final AuthService authService;
 	private final RefreshTokenService refreshTokenService;
+	private final UserRepository userRepository;
 
 	@PostMapping("/signup")
 	public ResponseEntity<String> signUp(@RequestBody @Valid UserRequest userRequest) {
+		if (userRepository.existsByUsernameOrEmail(userRequest.getUsername(), userRequest.getEmail()))
+			throw new BadRequestException("User already exists with this username or email.");
+
 		authService.signUp(userRequest);
 		return ResponseEntity.ok()
 				.body("User created successfully, check the mail box to activate your account.");

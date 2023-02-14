@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +19,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @Configuration
 @RequiredArgsConstructor
+@EnableMethodSecurity
 public class SecurityConfig {
 	private final UserDetailsService userDetailsService;
 	private final AuthenticationConfiguration authenticationConfiguration;
@@ -30,13 +32,15 @@ public class SecurityConfig {
 				.disable()
 				.csrf()
 				.disable()
-				.authorizeHttpRequests()
-				.anyRequest().permitAll()
-				.and()
+				.authorizeHttpRequests(auth -> {
+					auth.requestMatchers("/api/auth/verify/**",
+							"/api/auth/login", "/api/auth/signup",
+							"/api/auth/refresh/token").permitAll();
+					auth.anyRequest().authenticated();
+				})
 				.authenticationProvider(authenticationProvider())
 				.addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
-				.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-				.and()
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.build();
 	}
 
