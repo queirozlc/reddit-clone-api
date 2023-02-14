@@ -7,6 +7,7 @@ import com.lucas.redditclone.entity.Post;
 import com.lucas.redditclone.entity.SubReddit;
 import com.lucas.redditclone.exception.bad_request.BadRequestException;
 import com.lucas.redditclone.exception.not_found.NotFoundException;
+import com.lucas.redditclone.exception.unauthorized.UnauthorizedException;
 import com.lucas.redditclone.mapper.PostMapper;
 import com.lucas.redditclone.repository.PostRepository;
 import com.lucas.redditclone.repository.SubRedditRepository;
@@ -44,6 +45,12 @@ public class PostServiceImpl implements PostService {
 	public PostResponseBody editPost(PostEditRequestBody postEditRequestBody, UUID id) {
 		var postToBeEdited = postRepository.findById(id)
 				.orElseThrow(() -> new BadRequestException(NO_POSTS_FOUND));
+		var user = userRepository.findById(postEditRequestBody.getUserId())
+				.orElseThrow(() -> new BadRequestException("User not found"));
+
+		if (!user.getId().equals(postToBeEdited.getUser().getId())) {
+			throw new UnauthorizedException("User not authorized to edit this post.");
+		}
 
 		var post = mapper.toPost(postEditRequestBody, postToBeEdited.getSubReddit(), postToBeEdited.getUser());
 
