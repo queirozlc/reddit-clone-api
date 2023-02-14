@@ -5,10 +5,10 @@ import com.lucas.redditclone.dto.response.refresh_token.RefreshTokenResponseBody
 import com.lucas.redditclone.entity.RefreshToken;
 import com.lucas.redditclone.entity.User;
 import com.lucas.redditclone.exception.bad_request.BadRequestException;
+import com.lucas.redditclone.exception.unauthorized.UnauthorizedException;
 import com.lucas.redditclone.mapper.RefreshTokenMapper;
 import com.lucas.redditclone.repository.RefreshTokenRepository;
 import com.lucas.redditclone.repository.UserRepository;
-import com.lucas.redditclone.service.jwt.JwtService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,6 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 	private final RefreshTokenRepository refreshTokenRepository;
 	private final RefreshTokenMapper mapper;
 	private final UserRepository userRepository;
-	private final JwtService jwtService;
 	@Value("${cookies.expiration.expires-year}")
 	private int expiresInOneYear;
 	@Value("${cookies.expiration.expires-day}")
@@ -38,14 +37,9 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 	@Override
 	public RefreshToken generateRefreshToken(User user,
 	                                         boolean rememberMe,
-	                                         HttpServletResponse response) {
-
-		if (refreshTokenRepository.existsByUser(user)) {
-			throw new BadRequestException("User already have a token");
-		}
-
+	                                         HttpServletResponse response, HttpServletRequest request) {
+		validateRequest(request);
 		var refreshToken = mapper.toRefreshToken(user);
-
 		createCookie(response,
 				key,
 				refreshToken.getToken(),
@@ -62,39 +56,55 @@ public class RefreshTokenServiceImpl implements RefreshTokenService {
 	public RefreshTokenResponseBody refreshAccessToken(RefreshTokenRequestBody refreshTokenRequestBody,
 	                                                   HttpServletRequest request,
 	                                                   HttpServletResponse response) {
-		String token = getCookie(request, key);
-		var username = jwtService.extractUsername(refreshTokenRequestBody.getLastAccessToken());
-		var user = userRepository.findByUsername(username)
+		var token = getCookie(request, key);
+		var user = userRepository.findById(refreshTokenRequestBody.getUserId())
 				.orElseThrow(() -> new BadRequestException("Invalid access token"));
 
-		if (token == null || token.isEmpty()) {
+		if (token.isEmpty()) {
 			throw new BadRequestException("Refresh token does not exist.");
 		}
 
-		var oldRefreshToken = refreshTokenRepository.findByToken(token)
+		var refreshToken = refreshTokenRepository.findByToken(token.get())
 				.orElseThrow(() -> new BadRequestException("Token not found."));
 
-		deleteRefreshToken(response, oldRefreshToken);
-		RefreshToken refreshToken = generateRefreshToken(user, refreshTokenRequestBody.isRememberMe(), response);
+		if (!refreshToken.getUser().getId().equals(refreshTokenRequestBody.getUserId())) {
+			throw new UnauthorizedException("You do not have permission to refresh access token from another user");
+		}
+
+		if (refreshToken.getExpiredAt().isBefore(Instant.now())) {
+			deleteRefreshToken(response, refreshToken);
+			throw new UnauthorizedException("Refresh token has expired.");
+		}
+
 		return mapper.toRefreshTokenResponseBody(refreshToken, user);
 	}
 
 	@Override
 	public void logout(HttpServletRequest request, HttpServletResponse response) {
-		String token = getCookie(request, key);
+		var token = getCookie(request, key);
 
-		if (token == null || token.isEmpty()) {
+		if (token.isEmpty()) {
 			throw new BadRequestException("Refresh token does not exist.");
 		}
+
 		var refreshToken = refreshTokenRepository
-				.findByToken(token)
+				.findByToken(token.get())
 				.orElseThrow(() -> new BadRequestException("Token not found."));
 
 		deleteRefreshToken(response, refreshToken);
 	}
 
 	private void deleteRefreshToken(HttpServletResponse response, RefreshToken oldRefreshToken) {
-		cleanCookie(response, key);
 		refreshTokenRepository.delete(oldRefreshToken);
+		cleanCookie(response, key);
 	}
+
+	private void validateRequest(HttpServletRequest request) {
+		var cookieRefreshToken = getCookie(request, key);
+
+		if (cookieRefreshToken.isPresent() && !cookieRefreshToken.get().isEmpty()) {
+			throw new BadRequestException("User already logged in.");
+		}
+	}
+
 }

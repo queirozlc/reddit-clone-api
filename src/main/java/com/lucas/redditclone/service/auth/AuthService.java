@@ -4,6 +4,7 @@ import com.lucas.redditclone.dto.request.user.SignInRequest;
 import com.lucas.redditclone.dto.request.user.UserRequest;
 import com.lucas.redditclone.dto.response.SignInResponse;
 import com.lucas.redditclone.entity.User;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
@@ -18,5 +19,9 @@ public interface AuthService {
 
 	void refreshAccount(String token);
 
-	SignInResponse signIn(SignInRequest signInRequest, HttpServletResponse response);
+	SignInResponse signIn(SignInRequest signInRequest, HttpServletResponse response,
+	                      HttpServletRequest request);
+
+	User getCurrentUser();
+
 }

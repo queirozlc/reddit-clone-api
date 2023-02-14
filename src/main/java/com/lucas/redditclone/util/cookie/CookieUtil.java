@@ -1,6 +1,5 @@
 package com.lucas.redditclone.util.cookie;
 
-import com.lucas.redditclone.exception.not_found.NotFoundException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -33,14 +32,13 @@ public class CookieUtil {
 		response.addCookie(cookie);
 	}
 
-	public static String getCookie(HttpServletRequest request, String key) {
-		return Optional.of(request.getCookies())
+	public static Optional<String> getCookie(HttpServletRequest request, String key) {
+		return Optional.ofNullable(request.getCookies())
 				.flatMap(cookies ->
 						Arrays
 								.stream(cookies)
 								.filter(cookie -> key.equals(cookie.getName()))
 								.findAny()
-								.map(Cookie::getValue))
-				.orElseThrow(() -> new NotFoundException("Cookie not found"));
+								.map(Cookie::getValue));
 	}
 }

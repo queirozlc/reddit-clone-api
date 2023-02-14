@@ -12,6 +12,7 @@ import com.lucas.redditclone.mapper.PostMapper;
 import com.lucas.redditclone.repository.PostRepository;
 import com.lucas.redditclone.repository.SubRedditRepository;
 import com.lucas.redditclone.repository.UserRepository;
+import com.lucas.redditclone.service.auth.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -29,6 +30,7 @@ public class PostServiceImpl implements PostService {
 	private final UserRepository userRepository;
 	private final SubRedditRepository subRedditRepository;
 	private final PostMapper mapper;
+	private final AuthService authService;
 
 	@Override
 	public PostResponseBody createPost(PostRequestBody postRequestBody) {
@@ -37,7 +39,7 @@ public class PostServiceImpl implements PostService {
 		var subReddit = subRedditRepository.findByName(postRequestBody.getSubRedditName())
 				.orElseThrow(() -> new BadRequestException("SubReddit not found."));
 		var post = mapper.toPost(postRequestBody, subReddit, user);
-		Post postSaved = postRepository.save(post);
+		var postSaved = postRepository.save(post);
 		return mapper.toPostResponseBody(postSaved);
 	}
 
@@ -65,6 +67,11 @@ public class PostServiceImpl implements PostService {
 		Post post = postRepository
 				.findById(id)
 				.orElseThrow(() -> new BadRequestException(NO_POSTS_FOUND));
+
+		if (!post.getUser().getId().equals(authService.getCurrentUser().getId())) {
+			throw new UnauthorizedException("User not authorized to delete this post.");
+		}
+
 		postRepository.delete(post);
 	}
 

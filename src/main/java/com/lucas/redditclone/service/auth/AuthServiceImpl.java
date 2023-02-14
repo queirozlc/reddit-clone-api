@@ -17,6 +17,7 @@ import com.lucas.redditclone.repository.VerificationTokenRepository;
 import com.lucas.redditclone.service.impl.EmailService;
 import com.lucas.redditclone.service.jwt.JwtService;
 import com.lucas.redditclone.service.refresh_token.RefreshTokenService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
 
 	@Override
 	public void signUp(UserRequest userRequest) {
+		validateRequest(userRequest);
 		User userToBeSaved = userMapper.toUser(userRequest);
 		userToBeSaved.setPassword(passwordEncoder.encode(userRequest.getPassword()));
 		userToBeSaved.setCreatedAt(Instant.now());
@@ -59,6 +61,7 @@ public class AuthServiceImpl implements AuthService {
 		String token = generateVerificationToken(userSaved);
 		sendVerificationEmail(userSaved, token);
 	}
+
 
 	@Override
 	public String generateVerificationToken(User user) {
@@ -128,8 +131,9 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	public SignInResponse signIn(SignInRequest signInRequest, HttpServletResponse response) {
-		User userToAuthenticate = userRepository
+	public SignInResponse signIn(SignInRequest signInRequest, HttpServletResponse response,
+	                             HttpServletRequest request) {
+		var userToAuthenticate = userRepository
 				.findByUsername(signInRequest.getUsername())
 				.orElseThrow(() -> new BadRequestException("Username or password incorrect."));
 
@@ -152,13 +156,21 @@ public class AuthServiceImpl implements AuthService {
 		refreshTokenService.generateRefreshToken(
 				userAuthenticated,
 				signInRequest.isRememberMe(),
-				response);
+				response,
+				request);
 
 		return SignInResponse
 				.builder()
 				.token(token)
 				.username(userToAuthenticate.getUsername())
 				.build();
+	}
+
+	@Override
+	public User getCurrentUser() {
+		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+		return userRepository.findByUsername(((User) authentication.getPrincipal()).getUsername())
+				.orElseThrow(() -> new BadRequestException("User not found"));
 	}
 
 	private void updateRegister(VerificationToken verificationToken, User user) {
@@ -169,4 +181,15 @@ public class AuthServiceImpl implements AuthService {
 		userRepository.save(user);
 		verificationTokenRepository.delete(verificationToken);
 	}
+
+	private void validateRequest(UserRequest userRequest) {
+		if (userRepository.existsByUsername(userRequest.getUsername())) {
+			throw new BadRequestException("Already exists a user with this username");
+		}
+
+		if (userRepository.existsByEmail(userRequest.getEmail())) {
+			throw new BadRequestException("Already exists a user with this email");
+		}
+	}
+
 }

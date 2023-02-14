@@ -9,7 +9,8 @@ import jakarta.servlet.http.HttpServletResponse;
 
 public interface RefreshTokenService {
 
-	RefreshToken generateRefreshToken(User user, boolean rememberMe, HttpServletResponse response);
+	RefreshToken generateRefreshToken(User user, boolean rememberMe, HttpServletResponse response,
+	                                  HttpServletRequest request);
 
 	RefreshTokenResponseBody refreshAccessToken(RefreshTokenRequestBody refreshTokenRequestBody,
 	                                            HttpServletRequest request,

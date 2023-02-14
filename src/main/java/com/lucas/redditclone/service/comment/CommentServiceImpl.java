@@ -6,10 +6,12 @@ import com.lucas.redditclone.dto.response.comment.CommentResponseBody;
 import com.lucas.redditclone.entity.Comment;
 import com.lucas.redditclone.exception.bad_request.BadRequestException;
 import com.lucas.redditclone.exception.not_found.NotFoundException;
+import com.lucas.redditclone.exception.unauthorized.UnauthorizedException;
 import com.lucas.redditclone.mapper.CommentMapper;
 import com.lucas.redditclone.repository.CommentRepository;
 import com.lucas.redditclone.repository.PostRepository;
 import com.lucas.redditclone.repository.UserRepository;
+import com.lucas.redditclone.service.auth.AuthService;
 import com.lucas.redditclone.service.impl.EmailService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -29,9 +31,9 @@ public class CommentServiceImpl implements CommentService {
 	private final PostRepository postRepository;
 	private final CommentMapper mapper;
 	private final EmailService emailService;
+	private final AuthService authService;
 	@Value("${spring.mail.username}")
 	private String emailFrom;
-
 
 	@Override
 	public CommentResponseBody createComment(CommentRequestBody commentRequestBody) {
@@ -70,6 +72,11 @@ public class CommentServiceImpl implements CommentService {
 	public void delete(UUID id) {
 		Comment comment = commentRepository.findById(id)
 				.orElseThrow(() -> new BadRequestException("Comment not found"));
+
+		if (!comment.getUser().getId().equals(authService.getCurrentUser().getId())) {
+			throw new UnauthorizedException("You are not allowed to delete this comment.");
+		}
+
 		commentRepository.delete(comment);
 	}
 

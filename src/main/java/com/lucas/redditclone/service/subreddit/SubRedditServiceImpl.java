@@ -5,6 +5,7 @@ import com.lucas.redditclone.dto.response.SubRedditResponseBody;
 import com.lucas.redditclone.entity.SubReddit;
 import com.lucas.redditclone.exception.bad_request.BadRequestException;
 import com.lucas.redditclone.exception.not_found.NotFoundException;
+import com.lucas.redditclone.exception.unauthorized.UnauthorizedException;
 import com.lucas.redditclone.mapper.SubRedditMapper;
 import com.lucas.redditclone.repository.SubRedditRepository;
 import com.lucas.redditclone.repository.UserRepository;
@@ -63,8 +64,7 @@ public class SubRedditServiceImpl implements SubRedditService {
 				.orElseThrow(() -> new BadRequestException(NOT_FOUND));
 
 		if (!subRedditToBeUpdated.getUser().getId().equals(subRedditRequest.getUser().getId())) {
-			subRedditToBeUpdated.getUser().setEnabled(false);
-			throw new BadRequestException("The owner of subReddit cannot be changed.");
+			throw new UnauthorizedException("You do not have access to change subreddit owner");
 		}
 
 		subRedditRequest.setId(subRedditToBeUpdated.getId());
