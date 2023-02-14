@@ -16,6 +16,8 @@ import com.lucas.redditclone.repository.UserRepository;
 import com.lucas.redditclone.repository.VerificationTokenRepository;
 import com.lucas.redditclone.service.impl.EmailService;
 import com.lucas.redditclone.service.jwt.JwtService;
+import com.lucas.redditclone.service.refresh_token.RefreshTokenService;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -43,6 +45,7 @@ public class AuthServiceImpl implements AuthService {
 	private final UserMapper userMapper;
 	private final EmailService emailService;
 	private final RoleRepository roleRepository;
+	private final RefreshTokenService refreshTokenService;
 	@Value("${spring.mail.username}")
 	private String EMAIL_FROM;
 
@@ -125,7 +128,7 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	@Override
-	public SignInResponse signIn(SignInRequest signInRequest) {
+	public SignInResponse signIn(SignInRequest signInRequest, HttpServletResponse response) {
 		User userToAuthenticate = userRepository
 				.findByUsername(signInRequest.getUsername())
 				.orElseThrow(() -> new BadRequestException("Username or password incorrect."));
@@ -141,7 +144,16 @@ public class AuthServiceImpl implements AuthService {
 						signInRequest.getPassword()));
 
 		SecurityContextHolder.getContext().setAuthentication(authenticate);
-		String token = jwtService.generateToken(authenticate);
+
+		var userAuthenticated = (User) authenticate.getPrincipal();
+
+		String token = jwtService.generateToken(userAuthenticated);
+
+		refreshTokenService.generateRefreshToken(
+				userAuthenticated,
+				signInRequest.isRememberMe(),
+				response);
+
 		return SignInResponse
 				.builder()
 				.token(token)
@@ -150,8 +162,8 @@ public class AuthServiceImpl implements AuthService {
 	}
 
 	private void updateRegister(VerificationToken verificationToken, User user) {
-		Role roleUser = roleRepository.findByName(RoleName.ROLE_USER).orElseThrow(() -> new NotFoundException("Role " +
-				"not found."));
+		Role roleUser = roleRepository.findByName(RoleName.ROLE_USER)
+				.orElseThrow(() -> new NotFoundException("Role not found."));
 		user.setEnabled(true);
 		user.setRole(roleUser);
 		userRepository.save(user);
