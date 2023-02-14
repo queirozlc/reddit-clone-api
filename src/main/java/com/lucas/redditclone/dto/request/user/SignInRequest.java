@@ -21,4 +21,5 @@ public class SignInRequest {
 	@NotBlank(message = "the field 'password' is required")
 	@Size(min = 6, max = 48, message = "the field 'password' must be at least {min} characters")
 	private String password;
+	private boolean rememberMe;
 }
