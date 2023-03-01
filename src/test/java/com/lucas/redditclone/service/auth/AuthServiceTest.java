@@ -9,6 +9,7 @@ import com.lucas.redditclone.entity.Role;
 import com.lucas.redditclone.entity.User;
 import com.lucas.redditclone.entity.VerificationToken;
 import com.lucas.redditclone.entity.enums.RoleName;
+import com.lucas.redditclone.exception.bad_request.BadRequestException;
 import com.lucas.redditclone.mapper.UserMapper;
 import com.lucas.redditclone.repository.RoleRepository;
 import com.lucas.redditclone.repository.UserRepository;
@@ -49,9 +50,19 @@ class AuthServiceTest {
 	public static final String VERIFICATION_TOKEN = "b0a80121-7ac0-4e71-9c0a-03b600b4b0a1";
 	public static final String NAME = "user";
 	public static final String TOKEN = "token";
+	public static final String ALREADY_EXISTS_A_USER_WITH_THIS_USERNAME = "Already exists a user with this username";
+	public static final String ALREADY_EXISTS_A_USER_WITH_THIS_EMAIL = "Already exists a user with this email";
+	public static final String TOKEN_INVALID = "Token invalid.";
+	public static final String USER_NOT_FOUND = "User not found.";
+	public static final String TOKEN_EXPIRED = "Token expired.";
+	public static final String YOUR_ACCOUNT_IS_ALREADY_ENABLED = "Your account is already enabled.";
+	public static final String ACCOUNT_ALREADY_ENABLED = YOUR_ACCOUNT_IS_ALREADY_ENABLED;
+	public static final String VERIFICATION_TOKEN_STILL_VALID_CHECK_THE_EMAIL = "Your verification token still valid, check the email.";
+	public static final String USERNAME_OR_PASSWORD_INCORRECT = "Username or password incorrect.";
 	private static final UUID ID = UUID.fromString("c0a80121-7ac0-4e71-9c0a-03b600b4b0a2");
 	private static final String PASSWORD_ENCODED = "passwordEncoded";
 	private static final long REFRESH_TOKEN_EXPIRATION_TIME = 1000L;
+	private static final String ACCOUNT_NOT_ENABLED = "Your account is not enabled. Please verify your account.";
 	public static User user;
 	public static Role role;
 	public static Optional<User> userOptional;
@@ -95,7 +106,7 @@ class AuthServiceTest {
 	}
 
 	@Test
-	void shouldCreateUserWhenSuccessfully() {
+	void createUserWhenSuccessfully() {
 		when(userMapper.toUser(any(UserRequest.class))).thenReturn(user);
 
 		when(userRepository.save(any(User.class))).thenReturn(user);
@@ -114,6 +125,32 @@ class AuthServiceTest {
 		verify(passwordEncoder, times(1)).encode(PASSWORD);
 		assertEquals(verificationToken.getToken(), authService.generateVerificationToken(user));
 		assertEquals(String.class, authService.generateVerificationToken(user).getClass());
+	}
+
+	@Test
+	void shouldNotCreateUserWhenUserAlreadyExistsByUsername() {
+		when(userRepository.existsByUsername(anyString())).thenReturn(true);
+
+		try {
+			authService.signUp(userRequest);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(ALREADY_EXISTS_A_USER_WITH_THIS_USERNAME, ex.getMessage());
+		}
+	}
+
+	@Test
+	void shouldNotCreateUserWhenUserAlreadyExistsByEmail() {
+		when(userRepository.existsByEmail(anyString())).thenReturn(true);
+
+		try {
+			authService.signUp(userRequest);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(ALREADY_EXISTS_A_USER_WITH_THIS_EMAIL, ex.getMessage());
+		}
 	}
 
 
@@ -153,6 +190,69 @@ class AuthServiceTest {
 	}
 
 	@Test
+	void shouldThrowBadRequestExceptionWhenVerificationTokenNotFound() {
+		when(verificationTokenRepository.findByToken(anyString())).thenReturn(Optional.empty());
+
+		try {
+			authService.verifyAccount(anyString());
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(TOKEN_INVALID, ex.getMessage());
+			verify(verificationTokenRepository, times(1)).findByToken(anyString());
+		}
+	}
+
+	@Test
+	void shouldThrowBadRequestExceptionWhenUserNotFound() {
+		when(verificationTokenRepository.findByToken(anyString())).thenReturn(verificationTokenOptional);
+		when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
+
+		try {
+			authService.verifyAccount(anyString());
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(USER_NOT_FOUND, ex.getMessage());
+			verify(verificationTokenRepository, times(1)).findByToken(anyString());
+		}
+	}
+
+	@Test
+	void shouldThrowBadRequestExceptionWhenVerificationTokenExpired() {
+		when(verificationTokenRepository.findByToken(anyString())).thenReturn(verificationTokenOptional);
+		when(userRepository.findByUsername(anyString())).thenReturn(userOptional);
+		verificationToken.setExpirationDate(LocalDateTime.now().minusSeconds(10));
+
+		try {
+			authService.verifyAccount(VERIFICATION_TOKEN);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(TOKEN_EXPIRED, ex.getMessage());
+			verify(verificationTokenRepository, times(1)).findByToken(anyString());
+			verify(userRepository, times(1)).findByUsername(anyString());
+		}
+	}
+
+	@Test
+	void shouldThrowBadRequestExceptionWhenUserAlreadyVerified() {
+		when(verificationTokenRepository.findByToken(anyString())).thenReturn(verificationTokenOptional);
+		when(userRepository.findByUsername(anyString())).thenReturn(userOptional);
+		user.setEnabled(true);
+
+		try {
+			authService.verifyAccount(VERIFICATION_TOKEN);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(ACCOUNT_ALREADY_ENABLED, ex.getMessage());
+			verify(verificationTokenRepository, times(1)).findByToken(anyString());
+			verify(userRepository, times(1)).findByUsername(anyString());
+		}
+	}
+
+	@Test
 	void refreshAccountWhenSuccessfully() {
 		when(verificationTokenRepository.findByToken(anyString())).thenReturn(verificationTokenOptional);
 		when(userRepository.findByUsername(anyString())).thenReturn(userOptional);
@@ -168,6 +268,42 @@ class AuthServiceTest {
 		verify(userRepository, times(1)).findByUsername(USERNAME);
 		verify(authService, times(1)).generateVerificationToken(user);
 		verify(authService, times(1)).sendVerificationEmail(user, VERIFICATION_TOKEN);
+	}
+
+	@Test
+	void refreshAccountShouldThrowBadRequestExceptionWhenVerificationTokenRemainsValid() {
+		when(verificationTokenRepository.findByToken(anyString())).thenReturn(verificationTokenOptional);
+		when(userRepository.findByUsername(anyString())).thenReturn(userOptional);
+
+		try {
+			authService.refreshAccount(VERIFICATION_TOKEN);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(VERIFICATION_TOKEN_STILL_VALID_CHECK_THE_EMAIL, ex.getMessage());
+			verify(verificationTokenRepository, times(1)).findByToken(anyString());
+			verify(userRepository, times(1)).findByUsername(anyString());
+			verify(authService, atMost(0)).generateVerificationToken(user);
+		}
+	}
+
+	@Test
+	void refreshAccountShouldThrowBadRequestExceptionWhenUserAlreadyVerified() {
+		when(verificationTokenRepository.findByToken(anyString())).thenReturn(verificationTokenOptional);
+		when(userRepository.findByUsername(anyString())).thenReturn(userOptional);
+		verificationToken.setExpirationDate(LocalDateTime.now().minusSeconds(10));
+		user.setEnabled(true);
+
+		try {
+			authService.refreshAccount(VERIFICATION_TOKEN);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(YOUR_ACCOUNT_IS_ALREADY_ENABLED, ex.getMessage());
+			verify(verificationTokenRepository, times(1)).findByToken(anyString());
+			verify(userRepository, times(1)).findByUsername(anyString());
+			verify(authService, atMost(0)).generateVerificationToken(user);
+		}
 	}
 
 	@Test
@@ -191,6 +327,47 @@ class AuthServiceTest {
 		assertEquals(String.class, response.getToken().getClass());
 		assertEquals(user.getUsername(), response.getUsername());
 
+	}
+
+	@Test
+	void signInShouldThrowBadRequestExceptionWhenUserIsNotVerified() {
+		when(userRepository.findByUsername(anyString())).thenReturn(userOptional);
+		user.setEnabled(false);
+
+		try {
+			authService.signIn(signInRequest, null, null);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(ACCOUNT_NOT_ENABLED, ex.getMessage());
+			verify(userRepository, times(1)).findByUsername(USERNAME);
+			verify(authenticationManager, atMost(0)).authenticate(any(Authentication.class));
+			verify(jwtService, atMost(0)).generateToken(user);
+			verify(refreshTokenService,
+					atMost(0))
+					.generateRefreshToken(user, true, null, null);
+		}
+	}
+
+	@Test
+	void signInShouldThrowBadRequestExceptionWhenPasswordDoesNotMatch() {
+		when(userRepository.findByUsername(anyString())).thenReturn(userOptional);
+		user.setEnabled(true);
+		when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+
+		try {
+			authService.signIn(signInRequest, null, null);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(USERNAME_OR_PASSWORD_INCORRECT, ex.getMessage());
+			verify(userRepository, times(1)).findByUsername(USERNAME);
+			verify(authenticationManager, atMost(0)).authenticate(any(Authentication.class));
+			verify(jwtService, atMost(0)).generateToken(user);
+			verify(refreshTokenService,
+					atMost(0))
+					.generateRefreshToken(user, true, null, null);
+		}
 	}
 
 	@Test
