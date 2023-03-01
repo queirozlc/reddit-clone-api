@@ -173,7 +173,7 @@ public class AuthServiceImpl implements AuthService {
 				.orElseThrow(() -> new BadRequestException("User not found"));
 	}
 
-	private void updateRegister(VerificationToken verificationToken, User user) {
+	public void updateRegister(VerificationToken verificationToken, User user) {
 		Role roleUser = roleRepository.findByName(RoleName.ROLE_USER)
 				.orElseThrow(() -> new NotFoundException("Role not found."));
 		user.setEnabled(true);
