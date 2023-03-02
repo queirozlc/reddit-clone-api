@@ -5,6 +5,9 @@ import com.lucas.redditclone.dto.response.MailResponseBody;
 import com.lucas.redditclone.dto.response.comment.CommentResponseBody;
 import com.lucas.redditclone.entity.*;
 import com.lucas.redditclone.entity.enums.RoleName;
+import com.lucas.redditclone.exception.bad_request.BadRequestException;
+import com.lucas.redditclone.exception.not_found.NotFoundException;
+import com.lucas.redditclone.exception.unauthorized.UnauthorizedException;
 import com.lucas.redditclone.mapper.CommentMapper;
 import com.lucas.redditclone.repository.CommentRepository;
 import com.lucas.redditclone.repository.PostRepository;
@@ -39,6 +42,11 @@ class CommentServiceTest {
 	public static final String URL = "url";
 	public static final String TITLE = "TITLE";
 	public static final String SUB_REDDIT_NAME = "Subreddit";
+	public static final String NO_POSTS_FOUND = "No posts found.";
+	public static final String USER_NOT_FOUND = "User not found.";
+	public static final String USER_HAVE_NO_COMMENTS_YET = "User have no comments yet.";
+	public static final String COMMENT_NOT_FOUND = "Comment not found";
+	public static final String NOT_ALLOWED_TO_DELETE_THIS_COMMENT = "You are not allowed to delete this comment.";
 	private static final UUID ID = UUID.fromString("fa30bbb5-c704-4380-9a19-e41bfeed4ff9");
 	private static final String NAME = "user";
 	private static final String USERNAME = "@username";
@@ -98,9 +106,42 @@ class CommentServiceTest {
 		verify(commentRepository, times(1)).save(comment);
 	}
 
-	
 	@Test
-	void shouldGetAllCommentsByPostSuccessfully() {
+	void createCommentShouldThrowBadRequestExceptionIfPostNotFound() {
+		when(postRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+		try {
+			commentService.createComment(commentRequestBody);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(NO_POSTS_FOUND, ex.getMessage());
+			verify(postRepository, times(1)).findById(any(UUID.class));
+			verifyNoMoreInteractions(userRepository);
+			verifyNoMoreInteractions(commentMapper);
+		}
+	}
+
+	@Test
+	void createCommentShouldThrowBadRequestExceptionIfUserDoesNotExists() {
+		when(postRepository.findById(any(UUID.class))).thenReturn(postOptional);
+		when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+		try {
+			commentService.createComment(commentRequestBody);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(USER_NOT_FOUND, ex.getMessage());
+			verify(postRepository, times(1)).findById(any(UUID.class));
+			verify(userRepository, times(1)).findById(any(UUID.class));
+			verifyNoMoreInteractions(commentMapper);
+			verifyNoMoreInteractions(commentRepository);
+		}
+	}
+
+	@Test
+	void createCommentShouldGetAllCommentsByPostSuccessfully() {
 		when(postRepository.findById(any(UUID.class))).thenReturn(postOptional);
 		when(commentRepository.findAllByPost(any(Post.class), any(Pageable.class))).thenReturn(commentPage);
 		when(commentMapper.toCommentResponseBody(any(Comment.class))).thenReturn(commentResponseBody);
@@ -113,6 +154,22 @@ class CommentServiceTest {
 		verify(postRepository, times(1)).findById(ID);
 		verify(commentRepository, times(1)).findAllByPost(any(Post.class), any(Pageable.class));
 		verify(commentMapper, atLeastOnce()).toCommentResponseBody(any(Comment.class));
+	}
+
+	@Test
+	void getAllCommentsByPostShouldThrowBadRequestExceptionIfPostNotFound() {
+		when(postRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+		try {
+			commentService.getAllCommentsByPost(ID, PageRequest.of(0, 10));
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(NO_POSTS_FOUND, ex.getMessage());
+			verify(postRepository, times(1)).findById(any(UUID.class));
+			verifyNoMoreInteractions(commentRepository);
+			verifyNoMoreInteractions(commentMapper);
+		}
 	}
 
 	@Test
@@ -131,6 +188,39 @@ class CommentServiceTest {
 		verify(commentMapper, atLeastOnce()).toCommentResponseBody(any(Comment.class));
 	}
 
+	@Test
+	void getAllUserCommentsShouldThrowBadRequestExceptionIfUserNotFound() {
+		when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
+
+		try {
+			commentService.getAllUserComments(USERNAME, PageRequest.of(0, 10));
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(USER_NOT_FOUND, ex.getMessage());
+			verify(userRepository, times(1)).findByUsername(anyString());
+			verifyNoMoreInteractions(commentRepository);
+			verifyNoMoreInteractions(commentMapper);
+		}
+	}
+
+	@Test
+	void getAllUserCommentsShouldThrowNotFoundExceptionIfUserHasNoComments() {
+		when(userRepository.findByUsername(anyString())).thenReturn(userOptional);
+		when(commentRepository.findAllByUser(any(User.class), any(Pageable.class))).thenReturn(Page.empty());
+
+		try {
+			commentService.getAllUserComments(USERNAME, PageRequest.of(0, 10));
+		}
+		catch (Exception ex) {
+			assertEquals(NotFoundException.class, ex.getClass());
+			assertEquals(USER_HAVE_NO_COMMENTS_YET, ex.getMessage());
+			verify(userRepository, times(1)).findByUsername(anyString());
+			verify(commentRepository, times(1)).findAllByUser(any(User.class),
+					any(Pageable.class));
+			verifyNoMoreInteractions(commentMapper);
+		}
+	}
 
 	@Test
 	void shouldDeleteCommentSuccessfully() {
@@ -143,6 +233,39 @@ class CommentServiceTest {
 		verify(authService, times(1)).getCurrentUser();
 		verify(commentRepository, times(1)).delete(any(Comment.class));
 
+	}
+
+	@Test
+	void deleteShouldThrowBadRequestExceptionIfCommentNotFound() {
+		when(commentRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+		try {
+			commentService.delete(ID);
+		}
+		catch (Exception ex) {
+			assertEquals(BadRequestException.class, ex.getClass());
+			assertEquals(COMMENT_NOT_FOUND, ex.getMessage());
+			verify(commentRepository, times(1)).findById(any(UUID.class));
+			verifyNoMoreInteractions(authService);
+			verifyNoMoreInteractions(commentRepository);
+		}
+	}
+
+	@Test
+	void deleteShouldThrowUnauthorizedExceptionIfUserNotAllowedToDeleteComment() {
+		when(commentRepository.findById(any(UUID.class))).thenReturn(commentOptional);
+		when(authService.getCurrentUser()).thenReturn(User.builder().id(UUID.randomUUID()).build());
+
+		try {
+			commentService.delete(UUID.randomUUID());
+		}
+		catch (Exception ex) {
+			assertEquals(UnauthorizedException.class, ex.getClass());
+			assertEquals(NOT_ALLOWED_TO_DELETE_THIS_COMMENT, ex.getMessage());
+			verify(commentRepository, times(1)).findById(any(UUID.class));
+			verify(authService, times(1)).getCurrentUser();
+			verifyNoMoreInteractions(commentRepository);
+		}
 	}
 
 	@Test
