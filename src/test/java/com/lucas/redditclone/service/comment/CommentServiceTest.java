@@ -38,15 +38,15 @@ import static org.mockito.Mockito.*;
 @ExtendWith(SpringExtension.class)
 class CommentServiceTest {
 
-	public static final String BODY = "body";
-	public static final String URL = "url";
-	public static final String TITLE = "TITLE";
 	public static final String SUB_REDDIT_NAME = "Subreddit";
 	public static final String NO_POSTS_FOUND = "No posts found.";
 	public static final String USER_NOT_FOUND = "User not found.";
 	public static final String USER_HAVE_NO_COMMENTS_YET = "User have no comments yet.";
 	public static final String COMMENT_NOT_FOUND = "Comment not found";
 	public static final String NOT_ALLOWED_TO_DELETE_THIS_COMMENT = "You are not allowed to delete this comment.";
+	public static final String BODY = "body";
+	public static final String URL = "url";
+	public static final String TITLE = "TITLE";
 	private static final UUID ID = UUID.fromString("fa30bbb5-c704-4380-9a19-e41bfeed4ff9");
 	private static final String NAME = "user";
 	private static final String USERNAME = "@username";
@@ -278,6 +278,8 @@ class CommentServiceTest {
 	}
 
 	private void initClasses() {
+		role = Role.builder().id(ID).name(RoleName.ROLE_USER).build();
+
 		user = User
 				.builder()
 				.id(ID)
@@ -305,8 +307,6 @@ class CommentServiceTest {
 				.voteCount(0)
 				.build();
 		postOptional = Optional.of(post);
-
-		role = Role.builder().id(ID).name(RoleName.ROLE_USER).build();
 
 
 		commentRequestBody = CommentRequestBody
