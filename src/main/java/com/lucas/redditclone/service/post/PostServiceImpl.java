@@ -19,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -58,6 +59,7 @@ public class PostServiceImpl implements PostService {
 
 		post.setId(postToBeEdited.getId());
 		post.setCreatedAt(postToBeEdited.getCreatedAt());
+		post.setUpdatedAt(Instant.now());
 		Post postUpdated = postRepository.save(post);
 		return mapper.toPostResponseBody(postUpdated);
 	}
