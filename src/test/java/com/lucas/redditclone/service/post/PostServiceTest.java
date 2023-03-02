@@ -8,6 +8,9 @@ import com.lucas.redditclone.entity.Role;
 import com.lucas.redditclone.entity.SubReddit;
 import com.lucas.redditclone.entity.User;
 import com.lucas.redditclone.entity.enums.RoleName;
+import com.lucas.redditclone.exception.bad_request.BadRequestException;
+import com.lucas.redditclone.exception.not_found.NotFoundException;
+import com.lucas.redditclone.exception.unauthorized.UnauthorizedException;
 import com.lucas.redditclone.mapper.PostMapper;
 import com.lucas.redditclone.repository.PostRepository;
 import com.lucas.redditclone.repository.SubRedditRepository;
@@ -42,6 +45,10 @@ class PostServiceTest {
 	public static final String SUBREDDIT_NAME = "subredditName";
 	public static final String SUB_REDDIT_DESCRIPTION = "subReddit description";
 	public static final String MINUTES_AGO = "18 minutes ago";
+	public static final String USER_NOT_FOUND = "User not found";
+	public static final String USER_NOT_AUTHORIZED_TO_EDIT_THIS_POST = "User not authorized to edit this post.";
+	public static final String USER_NOT_AUTHORIZED_TO_DELETE_THIS_POST = "User not authorized to delete this post.";
+	public static final String SUB_REDDIT_NOT_FOUND = "SubReddit not found";
 	private static final String NO_POSTS_FOUND = "No posts found.";
 	private static final UUID ID = UUID.fromString("fa30bbb5-c704-4380-9a19-e41bfeed4ff9");
 	private static final String NAME = "user";
@@ -60,7 +67,6 @@ class PostServiceTest {
 	public static PostEditRequestBody postEditRequestBody;
 	public static Page<Post> postsPage;
 	public static Post postEdited;
-	public static Page<PostResponseBody> postResponseBodyPage;
 
 	@InjectMocks
 	PostServiceImpl postService;
@@ -102,6 +108,25 @@ class PostServiceTest {
 	}
 
 	@Test
+	void createPostShouldThrowBadRequestExceptionWhenUserNotFound() {
+		when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+		assertThrowsExactly(BadRequestException.class,
+				() -> postService.createPost(postRequestBody),
+				USER_NOT_FOUND);
+		verifyNoInteractions(subRedditRepository, postRepository, postMapper);
+	}
+
+	@Test
+	void createPostShouldThrowBadRequestExceptionWhenSubredditNotFound() {
+		when(userRepository.findById(any(UUID.class))).thenReturn(userOptional);
+		when(subRedditRepository.findByName(anyString())).thenReturn(Optional.empty());
+		assertThrowsExactly(BadRequestException.class,
+				() -> postService.createPost(postRequestBody),
+				USER_NOT_FOUND);
+		verifyNoInteractions(postRepository, postMapper);
+	}
+
+	@Test
 	void shouldEditAPostSuccessfully() {
 		when(postRepository.findById(any(UUID.class))).thenReturn(postOptional);
 		when(userRepository.findById(any(UUID.class))).thenReturn(userOptional);
@@ -123,6 +148,46 @@ class PostServiceTest {
 	}
 
 	@Test
+	void editPostShouldThrowBadRequestExceptionWhenPostNotFound() {
+		when(postRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+		assertThrowsExactly(BadRequestException.class,
+				() -> postService.editPost(postEditRequestBody, ID),
+				NO_POSTS_FOUND);
+		verifyNoInteractions(userRepository, postMapper);
+		verify(postRepository, times(1)).findById(any(UUID.class));
+		verify(postRepository, never()).save(any(Post.class));
+	}
+
+	@Test
+	void editPostShouldThrowBadRequestExceptionWhenUserNotFound() {
+		when(postRepository.findById(any(UUID.class))).thenReturn(postOptional);
+		when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+		assertThrowsExactly(BadRequestException.class,
+				() -> postService.editPost(postEditRequestBody, ID),
+				USER_NOT_FOUND);
+		verifyNoInteractions(postMapper);
+		verify(postRepository, times(1)).findById(any(UUID.class));
+		verify(userRepository, times(1)).findById(any(UUID.class));
+		verify(postRepository, never()).save(any(Post.class));
+	}
+
+	@Test
+	void editPostShouldThrowUnauthorizedExceptionWhenUserIsNotAuthor() {
+		when(postRepository.findById(any(UUID.class))).thenReturn(postOptional);
+		when(userRepository.findById(any(UUID.class))).thenReturn(Optional.of(
+				User.builder().id(UUID.randomUUID()).build()
+		));
+
+		assertThrowsExactly(UnauthorizedException.class,
+				() -> postService.editPost(postEditRequestBody, ID),
+				USER_NOT_AUTHORIZED_TO_EDIT_THIS_POST);
+		verifyNoInteractions(postMapper);
+		verify(postRepository, times(1)).findById(ID);
+		verify(userRepository, times(1)).findById(any(UUID.class));
+		verify(postRepository, never()).save(any(Post.class));
+	}
+
+	@Test
 	void shouldDeletePostSuccessfully() {
 		when(postRepository.findById(any(UUID.class))).thenReturn(postOptional);
 		when(authService.getCurrentUser()).thenReturn(user);
@@ -132,6 +197,29 @@ class PostServiceTest {
 		verify(postRepository, times(1)).findById(ID);
 		verify(postRepository, times(1)).delete(post);
 		verify(authService, times(1)).getCurrentUser();
+	}
+
+	@Test
+	void deletePostShouldThrowBadRequestExceptionWhenPostNotFound() {
+		when(postRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
+
+		assertThrowsExactly(BadRequestException.class, () -> postService.deletePost(ID), NO_POSTS_FOUND);
+		verifyNoInteractions(authService);
+		verify(postRepository, times(1)).findById(any(UUID.class));
+		verify(postRepository, never()).delete(any(Post.class));
+	}
+
+	@Test
+	void deletePostShouldThrowUnauthorizedExceptionWhenUserIsNotAuthor() {
+		when(postRepository.findById(any(UUID.class))).thenReturn(postOptional);
+		when(authService.getCurrentUser()).thenReturn(User.builder().id(UUID.randomUUID()).build());
+
+		assertThrowsExactly(UnauthorizedException.class,
+				() -> postService.deletePost(ID),
+				USER_NOT_AUTHORIZED_TO_DELETE_THIS_POST);
+		verify(postRepository, times(1)).findById(ID);
+		verify(authService, times(1)).getCurrentUser();
+		verify(postRepository, never()).delete(any(Post.class));
 	}
 
 	@Test
@@ -145,6 +233,19 @@ class PostServiceTest {
 		verify(postRepository, times(1))
 				.findAllPostsByTitleIgnoreCase(anyString(), any(Pageable.class));
 		verify(postMapper, atLeastOnce()).toPostResponseBody(post);
+	}
+
+	@Test
+	void getAllPostsByTitleShouldThrowNotFoundExceptionIfPostPageIsEmpty() {
+		when(postRepository.findAllPostsByTitleIgnoreCase(anyString(),
+				any(Pageable.class))).thenReturn(Page.empty());
+
+		assertThrowsExactly(NotFoundException.class,
+				() -> postService.getAllPostsByTitlePageable(TITLE, PageRequest.of(0, 5)),
+				NO_POSTS_FOUND);
+		verifyNoInteractions(postMapper);
+		verify(postRepository, times(1))
+				.findAllPostsByTitleIgnoreCase(anyString(), any(Pageable.class));
 	}
 
 	@Test
@@ -163,6 +264,34 @@ class PostServiceTest {
 		verify(postMapper, atLeastOnce()).toPostResponseBody(post);
 	}
 
+	@Test
+	void getAllPostsBySubRedditShouldThrowBadRequestExceptionWhenSubredditNotFound() {
+		when(subRedditRepository.findByName(anyString())).thenReturn(Optional.empty());
+
+		assertThrowsExactly(BadRequestException.class,
+				() -> postService.getAllPostsBySubRedditPageable(
+						subReddit.getName(),
+						PageRequest.of(0, 5)),
+				SUB_REDDIT_NOT_FOUND);
+		verify(subRedditRepository, times(1)).findByName(subReddit.getName());
+		verifyNoInteractions(postRepository, postMapper);
+	}
+
+	@Test
+	void getAllPostsBySubRedditShouldThrowNotFoundExceptionIfPostPageIsEmpty() {
+		when(subRedditRepository.findByName(anyString())).thenReturn(subRedditOptional);
+		when(postRepository.findAllBySubReddit(any(SubReddit.class), any(Pageable.class))).thenReturn(Page.empty());
+
+		assertThrowsExactly(NotFoundException.class,
+				() -> postService.getAllPostsBySubRedditPageable(
+						subReddit.getName(),
+						PageRequest.of(0, 5)),
+				NO_POSTS_FOUND);
+		verifyNoInteractions(postMapper);
+		verify(subRedditRepository, times(1)).findByName(subReddit.getName());
+		verify(postRepository, times(1))
+				.findAllBySubReddit(any(SubReddit.class), any(Pageable.class));
+	}
 
 	@Test
 	void shouldGetAllPostsByUsernameWithPaginationSuccessfully() {
@@ -181,6 +310,33 @@ class PostServiceTest {
 	}
 
 	@Test
+	void getAllPostsByUsernameShouldThrowBadRequestExceptionWhenUserNotFound() {
+		when(userRepository.findByUsername(anyString())).thenReturn(Optional.empty());
+
+		assertThrowsExactly(BadRequestException.class, () -> postService.getAllPostsByUsernamePageable(
+						user.getUsername(),
+						PageRequest.of(0, 5)),
+				USER_NOT_FOUND);
+		verify(userRepository, times(1)).findByUsername(user.getUsername());
+		verifyNoInteractions(postRepository, postMapper);
+	}
+
+	@Test
+	void getAllPostsByUsernameShouldThrowNotFoundExceptionIfPostPageIsEmpty() {
+		when(userRepository.findByUsername(anyString())).thenReturn(userOptional);
+		when(postRepository.findAllByUser(any(User.class), any(Pageable.class))).thenReturn(Page.empty());
+
+		assertThrowsExactly(NotFoundException.class, () -> postService.getAllPostsByUsernamePageable(
+						user.getUsername(),
+						PageRequest.of(0, 5)),
+				NO_POSTS_FOUND);
+		verifyNoInteractions(postMapper);
+		verify(userRepository, times(1)).findByUsername(user.getUsername());
+		verify(postRepository, times(1))
+				.findAllByUser(any(User.class), any(Pageable.class));
+	}
+
+	@Test
 	void shouldGetAllPostsWithPaginationSuccessfully() {
 		when(postRepository.findAll(any(Pageable.class))).thenReturn(postsPage);
 		when(postMapper.toPostResponseBody(any(Post.class))).thenReturn(postResponseBody);
@@ -192,6 +348,17 @@ class PostServiceTest {
 		assertEquals(1, response.toList().size());
 		verify(postRepository, times(1)).findAll(any(Pageable.class));
 		verify(postMapper, atLeastOnce()).toPostResponseBody(post);
+	}
+
+	@Test
+	void getAllPostsShouldThrowNotFoundExceptionIfPostPageIsEmpty() {
+		when(postRepository.findAll(any(Pageable.class))).thenReturn(Page.empty());
+
+		assertThrowsExactly(NotFoundException.class,
+				() -> postService.getAllPosts(PageRequest.of(0, 5)),
+				NO_POSTS_FOUND);
+		verify(postRepository, times(1)).findAll(any(Pageable.class));
+		verifyNoInteractions(postMapper);
 	}
 
 	void initClasses() {
