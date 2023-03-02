@@ -3,6 +3,7 @@ package com.lucas.redditclone.service.comment;
 
 import com.lucas.redditclone.dto.request.comment.CommentRequestBody;
 import com.lucas.redditclone.dto.response.comment.CommentResponseBody;
+import com.lucas.redditclone.entity.Comment;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -17,4 +18,6 @@ public interface CommentService {
 	Page<CommentResponseBody> getAllUserComments(String username, Pageable pageable);
 
 	void delete(UUID id);
+
+	void sendEmail(Comment commentSaved);
 }

@@ -80,7 +80,8 @@ public class CommentServiceImpl implements CommentService {
 		commentRepository.delete(comment);
 	}
 
-	private void sendEmail(Comment commentSaved) {
+	@Override
+	public void sendEmail(Comment commentSaved) {
 		var subject = "No reply: New comment on your post. Take a look :)";
 		var message = commentSaved.getUser().getUsername() + " made a comment on your post: " + commentSaved
 				.getPost().getTitle() + " on RedditClone, take a look: " +
