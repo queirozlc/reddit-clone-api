@@ -50,7 +50,7 @@ public class CommentServiceImpl implements CommentService {
 
 	@Override
 	public Page<CommentResponseBody> getAllCommentsByPost(UUID id, Pageable pageable) {
-		var post = postRepository.findById(id).orElseThrow(() -> new BadRequestException("No post found"));
+		var post = postRepository.findById(id).orElseThrow(() -> new BadRequestException("No posts found."));
 		return commentRepository.findAllByPost(post, pageable).map(mapper::toCommentResponseBody);
 	}
 
