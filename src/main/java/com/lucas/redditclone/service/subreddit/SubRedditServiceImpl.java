@@ -41,14 +41,13 @@ public class SubRedditServiceImpl implements SubRedditService {
 
 	@Override
 	public Page<SubRedditResponseBody> getAllSubreddits(Pageable pageable) {
-		Page<SubRedditResponseBody> subRedditResponseBodyPage = subRedditRepository
-				.findAll(pageable)
-				.map(mapper::toSubRedditResponseBody);
+		Page<SubReddit> subReddits = subRedditRepository
+				.findAll(pageable);
 
-		if (subRedditResponseBodyPage.isEmpty()) {
+		if (subReddits.isEmpty()) {
 			throw new NotFoundException(NOT_FOUND);
 		}
-		return subRedditResponseBodyPage;
+		return subReddits.map(mapper::toSubRedditResponseBody);
 	}
 
 	@Override
