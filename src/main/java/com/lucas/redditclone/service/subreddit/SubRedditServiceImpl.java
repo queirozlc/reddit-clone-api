@@ -31,9 +31,6 @@ public class SubRedditServiceImpl implements SubRedditService {
 	public SubRedditResponseBody createSubReddit(SubRedditRequestBody subRedditRequestBody) {
 		SubReddit subReddit = mapper.toSubReddit(subRedditRequestBody);
 
-		if (subReddit.getUser().getId() == null) {
-			throw new BadRequestException("The subreddit must have an owner.");
-		}
 		var owner = userRepository.findById(subReddit.getUser().getId())
 				.orElseThrow(() -> new BadRequestException("User not found."));
 
