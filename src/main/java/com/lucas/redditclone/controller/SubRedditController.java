@@ -10,7 +10,6 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.CREATED;
@@ -27,8 +26,8 @@ public class SubRedditController {
 	}
 
 	@GetMapping
-	public ResponseEntity<List<SubRedditResponseBody>> getAllSubReddits() {
-		return ResponseEntity.ok(subRedditService.getAllSubreddits());
+	public ResponseEntity<Page<SubRedditResponseBody>> getAllSubReddits(Pageable pageable) {
+		return ResponseEntity.ok(subRedditService.getAllSubreddits(pageable));
 	}
 
 	@GetMapping("/search/subreddit")

@@ -16,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -44,16 +43,15 @@ public class SubRedditServiceImpl implements SubRedditService {
 	}
 
 	@Override
-	public List<SubRedditResponseBody> getAllSubreddits() {
-		List<SubRedditResponseBody> subreddits = subRedditRepository
-				.findAll()
-				.stream()
-				.map(mapper::toSubRedditResponseBody)
-				.toList();
-		if (subreddits.isEmpty()) {
+	public Page<SubRedditResponseBody> getAllSubreddits(Pageable pageable) {
+		Page<SubRedditResponseBody> subRedditResponseBodyPage = subRedditRepository
+				.findAll(pageable)
+				.map(mapper::toSubRedditResponseBody);
+
+		if (subRedditResponseBodyPage.isEmpty()) {
 			throw new NotFoundException(NOT_FOUND);
 		}
-		return subreddits;
+		return subRedditResponseBodyPage;
 	}
 
 	@Override
