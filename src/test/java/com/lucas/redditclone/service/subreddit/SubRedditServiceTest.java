@@ -121,15 +121,19 @@ class SubRedditServiceTest {
 
 	@Test
 	void shouldGetAllSubRedditByNameWithPaginationSuccessfully() {
-		when(subRedditRepository.findAllByNameLikeIgnoreCase(anyString(), any(Pageable.class))).thenReturn(subRedditPage);
-		when(subRedditMapper.toSubRedditResponseBody(any(SubReddit.class))).thenReturn(subRedditResponseBody);
+		when(subRedditRepository.findAllByNameLikeIgnoreCase(anyString(),
+				any(Pageable.class))).thenReturn(subRedditPage);
+		when(subRedditMapper.toSubRedditResponseBody(any(SubReddit.class)))
+				.thenReturn(subRedditResponseBody);
 
-		Page<SubRedditResponseBody> response = subRedditService.getAllSubRedditByNamePageable(SUBREDDIT_NAME, PageRequest.of(0, 10));
+		Page<SubRedditResponseBody> response = subRedditService
+				.getAllSubRedditByNamePageable(SUBREDDIT_NAME, PageRequest.of(0, 10));
 
 		assertEquals(SubRedditResponseBody.class, response.toList().get(0).getClass());
 		assertEquals(subReddit.getName(), response.toList().get(0).getName());
 		assertEquals(1, response.toList().size());
-		verify(subRedditRepository, times(1)).findAllByNameLikeIgnoreCase(SUBREDDIT_NAME, PageRequest.of(0, 10));
+		verify(subRedditRepository, times(1))
+				.findAllByNameLikeIgnoreCase(SUBREDDIT_NAME, PageRequest.of(0, 10));
 		verify(subRedditMapper, atLeastOnce()).toSubRedditResponseBody(subReddit);
 	}
 
