@@ -15,11 +15,15 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class SubRedditRequestBody {
-	@NotBlank(message = "Field name is required.")
-	@Pattern(regexp = "(?:^| )(/?r/[a-zA-Z]+)", message = "Invalid name. Try something like that: 'r/memes'.")
-	private String name;
-	@NotBlank(message = "Field description is required.")
-	private String description;
-	@NotNull(message = "Id of owner user is required.")
-	private UUID userId;
+    @NotBlank(message = "Field name is required.")
+    private String name;
+    @Pattern(regexp = "(?:^| )(/?r/[a-zA-Z]+)", message = "Invalid uri. Try something like that: 'r/memes'.")
+    @NotBlank(message = "Field uri is required")
+    private String uri;
+    @NotBlank(message = "Field description is required.")
+    private String description;
+    @NotNull(message = "Id of owner user is required.")
+    private UUID userId;
+    @NotNull(message = "Category Id is required")
+    private UUID categoryId;
 }

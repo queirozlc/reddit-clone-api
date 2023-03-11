@@ -2,6 +2,7 @@ package com.lucas.redditclone.service.subreddit;
 
 import com.lucas.redditclone.dto.request.subreddit.SubRedditRequestBody;
 import com.lucas.redditclone.dto.response.SubRedditResponseBody;
+import com.lucas.redditclone.entity.Category;
 import com.lucas.redditclone.entity.Post;
 import com.lucas.redditclone.entity.SubReddit;
 import com.lucas.redditclone.entity.User;
@@ -77,7 +78,7 @@ class SubRedditServiceTest {
 
     @Test
     void shouldCreateSubRedditSuccessfully() {
-        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class))).thenReturn(subReddit);
+        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class), any(Category.class))).thenReturn(subReddit);
         when(userRepository.findById(any(UUID.class))).thenReturn(userOptional);
         when(subRedditRepository.save(any(SubReddit.class))).thenReturn(subReddit);
         when(subRedditMapper.toSubRedditResponseBody(any(SubReddit.class))).thenReturn(subRedditResponseBody);

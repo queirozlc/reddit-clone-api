@@ -12,8 +12,10 @@ import java.util.UUID;
 
 @Repository
 public interface SubRedditRepository extends JpaRepository<SubReddit, UUID> {
-	Optional<SubReddit> findByName(String name);
+    boolean existsByUri(String uri);
 
-	@Query("select s from SubReddit s where upper(s.name) like upper(concat('%', ?1, '%'))")
-	Page<SubReddit> findAllByNameLikeIgnoreCase(String name, Pageable pageable);
+    Optional<SubReddit> findByName(String name);
+
+    @Query("select s from SubReddit s where upper(s.name) like upper(concat('%', ?1, '%'))")
+    Page<SubReddit> findAllByNameLikeIgnoreCase(String name, Pageable pageable);
 }
