@@ -19,31 +19,31 @@ import java.util.UUID;
 @Entity
 @Table(name = "refresh_token", schema = "reddit")
 public class RefreshToken implements Serializable {
-	@Serial
-	private static final long serialVersionUID = 6771724503693840053L;
-	@Id
-	@GeneratedValue(strategy = GenerationType.UUID)
-	@Column(name = "id", nullable = false)
-	private UUID id;
-	@Column(name = "token", nullable = false, unique = true)
-	private String token;
+    @Serial
+    private static final long serialVersionUID = 6771724503693840053L;
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(name = "id", nullable = false)
+    private UUID id;
+    @Column(name = "token", nullable = false, unique = true)
+    private String token;
 
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "user_id", nullable = false)
-	private User user;
-	private Instant createdAt;
-	private Instant expiredAt;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
+    private Instant createdAt;
+    private Instant expiredAt;
 
-	@Override
-	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
-		RefreshToken that = (RefreshToken) o;
-		return id != null && Objects.equals(id, that.id);
-	}
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || Hibernate.getClass(this) != Hibernate.getClass(o)) return false;
+        RefreshToken that = (RefreshToken) o;
+        return id != null && Objects.equals(id, that.id);
+    }
 
-	@Override
-	public int hashCode() {
-		return getClass().hashCode();
-	}
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }
