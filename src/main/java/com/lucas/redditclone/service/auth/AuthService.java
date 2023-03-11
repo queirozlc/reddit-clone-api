@@ -4,24 +4,21 @@ import com.lucas.redditclone.dto.request.user.SignInRequest;
 import com.lucas.redditclone.dto.request.user.UserRequest;
 import com.lucas.redditclone.dto.response.SignInResponse;
 import com.lucas.redditclone.entity.User;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
 
 public interface AuthService {
 
-	void signUp(UserRequest userRequest);
+    void signUp(UserRequest userRequest);
 
-	String generateVerificationToken(User user);
+    String generateVerificationToken(User user);
 
-	void sendVerificationEmail(User user, String token);
+    void sendVerificationEmail(User user, String token);
 
-	void verifyAccount(String token);
+    void verifyAccount(String token);
 
-	void refreshAccount(String token);
+    void refreshAccount(String token);
 
-	SignInResponse signIn(SignInRequest signInRequest, HttpServletResponse response,
-	                      HttpServletRequest request);
+    SignInResponse signIn(SignInRequest signInRequest);
 
-	User getCurrentUser();
+    User getCurrentUser();
 
 }
