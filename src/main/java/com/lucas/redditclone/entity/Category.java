@@ -8,7 +8,6 @@ import org.hibernate.Hibernate;
 import java.io.Serial;
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -46,7 +45,7 @@ public class Category implements Serializable {
 
     @OneToMany(mappedBy = "parent", orphanRemoval = true)
     @JsonIgnore
-    private List<Category> childrenCategories = new ArrayList<>();
+    private List<Category> childrenCategories;
 
     private Instant createdAt;
     private Instant updatedAt;
