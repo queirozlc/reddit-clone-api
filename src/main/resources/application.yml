@@ -32,7 +32,6 @@ jwt:
     secret-key: 5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437
 cookies:
   expiration:
-    expires-year: 31536000
-    expires-day: 86400
+    expires-week: 86400
   key:
     cookie-name: reddit-session
