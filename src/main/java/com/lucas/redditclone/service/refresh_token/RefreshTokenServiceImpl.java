@@ -9,102 +9,86 @@ import com.lucas.redditclone.exception.unauthorized.UnauthorizedException;
 import com.lucas.redditclone.mapper.RefreshTokenMapper;
 import com.lucas.redditclone.repository.RefreshTokenRepository;
 import com.lucas.redditclone.repository.UserRepository;
-import jakarta.servlet.http.HttpServletRequest;
+import com.lucas.redditclone.service.auth.AuthService;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 
-import static com.lucas.redditclone.util.cookie.CookieUtil.*;
-
 @Transactional
 @RequiredArgsConstructor
 @Service
 public class RefreshTokenServiceImpl implements RefreshTokenService {
-	private final RefreshTokenRepository refreshTokenRepository;
-	private final RefreshTokenMapper mapper;
-	private final UserRepository userRepository;
-	@Value("${cookies.expiration.expires-year}")
-	private int expiresInOneYear;
-	@Value("${cookies.expiration.expires-day}")
-	private int expiresInOneDay;
-	@Value("${cookies.key.cookie-name}")
-	private String key;
-
-	@Override
-	public RefreshToken generateRefreshToken(User user,
-	                                         boolean rememberMe,
-	                                         HttpServletResponse response, HttpServletRequest request) {
-		validateRequest(request);
-		var refreshToken = mapper.toRefreshToken(user);
-		createCookie(response,
-				key,
-				refreshToken.getToken(),
-				"localhost",
-				rememberMe ? expiresInOneYear : expiresInOneDay,
-				false);
-		refreshToken.setExpiredAt(rememberMe ? Instant.now().plusSeconds(expiresInOneYear)
-				: Instant.now().plusSeconds(expiresInOneDay));
-		return refreshTokenRepository.save(refreshToken);
-	}
+    public static final String USER_NOT_FOUND = "User not found.";
+    private final RefreshTokenRepository refreshTokenRepository;
+    private final RefreshTokenMapper mapper;
+    private final UserRepository userRepository;
+    private final AuthService authService;
+    @Value("${cookies.expiration.expires-week}")
+    private int expiresInOneWeek;
 
 
-	@Override
-	public RefreshTokenResponseBody refreshAccessToken(RefreshTokenRequestBody refreshTokenRequestBody,
-	                                                   HttpServletRequest request,
-	                                                   HttpServletResponse response) {
-		var token = getCookie(request, key);
-		var user = userRepository.findById(refreshTokenRequestBody.getUserId())
-				.orElseThrow(() -> new BadRequestException("Invalid access token"));
+    @Override
+    public RefreshToken generateRefreshToken(User user, String refreshTokenCookie) {
+        validateRequest(refreshTokenCookie, user);
+        return createRefreshToken(user);
+    }
 
-		if (token.isEmpty()) {
-			throw new BadRequestException("Refresh token does not exist.");
-		}
 
-		var refreshToken = refreshTokenRepository.findByToken(token.get())
-				.orElseThrow(() -> new BadRequestException("Token not found."));
+    @Override
+    public RefreshTokenResponseBody refreshAccessToken(RefreshTokenRequestBody refreshTokenRequestBody) {
+        var user = userRepository.findById(refreshTokenRequestBody.getUserId())
+                .orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
+        var refreshToken = refreshTokenRepository.findByToken(refreshTokenRequestBody.getRefreshToken())
+                .orElseThrow(() -> new BadRequestException("Refresh Token not found."));
 
-		if (!refreshToken.getUser().getId().equals(refreshTokenRequestBody.getUserId())) {
-			throw new UnauthorizedException("You do not have permission to refresh access token from another user");
-		}
+        if (!refreshToken.getUser().getId().equals(user.getId())) {
+            throw new UnauthorizedException("You are not allowed to access this resource.");
+        }
 
-		if (refreshToken.getExpiredAt().isBefore(Instant.now())) {
-			deleteRefreshToken(response, refreshToken);
-			throw new UnauthorizedException("Refresh token has expired.");
-		}
+        if (refreshToken.getExpiredAt().isBefore(Instant.now())) {
+            deleteRefreshToken(refreshToken);
+            throw new UnauthorizedException("Refresh token has expired.");
+        }
 
-		return mapper.toRefreshTokenResponseBody(refreshToken, user);
-	}
+        RefreshToken newRefreshToken = createRefreshToken(user);
+        refreshTokenRepository.delete(refreshToken);
+        return mapper.toRefreshTokenResponseBody(newRefreshToken, user);
+    }
 
-	@Override
-	public void logout(HttpServletRequest request, HttpServletResponse response) {
-		var token = getCookie(request, key);
+    @Override
+    public void logout(HttpServletResponse response) {
+        var userToLogout = authService.getCurrentUser();
+        var refreshToken = refreshTokenRepository.findByUser(userToLogout)
+                .orElseThrow(() -> new BadRequestException("Refresh Token don't exist"));
+        var cookie = new Cookie("reddit-session", null);
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
+        refreshTokenRepository.delete(refreshToken);
+    }
 
-		if (token.isEmpty()) {
-			throw new BadRequestException("Refresh token does not exist.");
-		}
+    private void validateRequest(String refreshTokenCookie, User user) {
+        if (refreshTokenCookie != null &&
+                !refreshTokenCookie.isEmpty() &&
+                refreshTokenRepository.existsByTokenOrUser(refreshTokenCookie, user)) {
+            throw new BadRequestException("User already logged in");
+        }
+    }
 
-		var refreshToken = refreshTokenRepository
-				.findByToken(token.get())
-				.orElseThrow(() -> new BadRequestException("Token not found."));
+    @NotNull
+    private RefreshToken createRefreshToken(User user) {
+        var refreshToken = mapper.toRefreshToken(user);
+        refreshToken.setExpiredAt(Instant.now().plusSeconds(expiresInOneWeek));
+        return refreshTokenRepository.save(refreshToken);
+    }
 
-		deleteRefreshToken(response, refreshToken);
-	}
-
-	private void deleteRefreshToken(HttpServletResponse response, RefreshToken oldRefreshToken) {
-		refreshTokenRepository.delete(oldRefreshToken);
-		cleanCookie(response, key);
-	}
-
-	private void validateRequest(HttpServletRequest request) {
-		var cookieRefreshToken = getCookie(request, key);
-
-		if (cookieRefreshToken.isPresent() && !cookieRefreshToken.get().isEmpty()) {
-			throw new BadRequestException("User already logged in.");
-		}
-	}
+    private void deleteRefreshToken(RefreshToken refreshToken) {
+        refreshTokenRepository.delete(refreshToken);
+    }
 
 }
