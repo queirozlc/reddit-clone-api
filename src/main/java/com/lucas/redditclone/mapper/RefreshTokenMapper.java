@@ -12,20 +12,21 @@ import org.springframework.beans.factory.annotation.Autowired;
 @Mapper(unmappedTargetPolicy = ReportingPolicy.IGNORE, componentModel = "spring")
 public abstract class RefreshTokenMapper {
 
-	@Autowired
-	JwtService jwtService;
+    @Autowired
+    JwtService jwtService;
 
-	@Mapping(target = "user", source = "user")
-	@Mapping(target = "token", expression = "java(java.util.UUID.randomUUID().toString())")
-	@Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
-	@Mapping(target = "expiredAt", ignore = true)
-	public abstract RefreshToken toRefreshToken(User user);
+    @Mapping(target = "user", source = "user")
+    @Mapping(target = "token", expression = "java(java.util.UUID.randomUUID().toString())")
+    @Mapping(target = "createdAt", expression = "java(java.time.Instant.now())")
+    @Mapping(target = "expiredAt", ignore = true)
+    public abstract RefreshToken toRefreshToken(User user);
 
-	@Mapping(target = "newAccessToken", expression = "java(generateJwtAccessToken(user))")
-	@Mapping(target = "username", source = "user.username")
-	public abstract RefreshTokenResponseBody toRefreshTokenResponseBody(RefreshToken refreshToken, User user);
+    @Mapping(target = "newAccessToken", expression = "java(generateJwtAccessToken(user))")
+    @Mapping(target = "username", source = "user.username")
+    @Mapping(target = "refreshTokenEntity", source = "refreshToken")
+    public abstract RefreshTokenResponseBody toRefreshTokenResponseBody(RefreshToken refreshToken, User user);
 
-	String generateJwtAccessToken(User user) {
-		return jwtService.generateToken(user);
-	}
+    String generateJwtAccessToken(User user) {
+        return jwtService.generateToken(user);
+    }
 }
