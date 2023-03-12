@@ -8,6 +8,7 @@ import com.lucas.redditclone.dto.response.refresh_token.RefreshTokenResponseBody
 import com.lucas.redditclone.entity.RefreshToken;
 import com.lucas.redditclone.service.auth.AuthService;
 import com.lucas.redditclone.service.refresh_token.RefreshTokenService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.jetbrains.annotations.NotNull;
@@ -48,11 +49,9 @@ public class AuthController {
 
 
     @PostMapping("/logout")
-    public ResponseEntity<String> logout() {
-        refreshTokenService.logout();
-        var cookieCleaned = cleanCookie();
+    public ResponseEntity<String> logout(HttpServletResponse response) {
+        refreshTokenService.logout(response);
         return ResponseEntity.ok()
-                .header(HttpHeaders.SET_COOKIE, cookieCleaned.toString())
                 .body("User logged out successfully");
     }
 
@@ -97,6 +96,6 @@ public class AuthController {
 
     @NotNull
     private ResponseCookie cleanCookie() {
-        return ResponseCookie.from(key, "").build();
+        return ResponseCookie.from(key, null).maxAge(0).build();
     }
 }
