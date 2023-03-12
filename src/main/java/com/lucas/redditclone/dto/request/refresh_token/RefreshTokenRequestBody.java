@@ -11,7 +11,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 public class RefreshTokenRequestBody {
-	private boolean rememberMe;
-	@NotNull(message = "Last JWT access token is required.")
-	private UUID userId;
+    @NotNull(message = "User id is required.")
+    private UUID userId;
+    private String refreshToken;
 }
