@@ -21,44 +21,42 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 @EnableMethodSecurity
 public class SecurityConfig {
-	private final UserDetailsService userDetailsService;
-	private final AuthenticationConfiguration authenticationConfiguration;
-	private final JwtAuthenticationFilter authenticationFilter;
+    private final UserDetailsService userDetailsService;
+    private final AuthenticationConfiguration authenticationConfiguration;
+    private final JwtAuthenticationFilter authenticationFilter;
 
-	@Bean
-	SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-		return http
-				.cors()
-				.disable()
-				.csrf()
-				.disable()
-				.authorizeHttpRequests(auth -> {
-					auth.requestMatchers("/api/auth/verify/**",
-							"/api/auth/login", "/api/auth/signup",
-							"/api/auth/refresh/token").permitAll();
-					auth.anyRequest().authenticated();
-				})
-				.authenticationProvider(authenticationProvider())
-				.addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-				.build();
-	}
+    @Bean
+    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        return http
+                .csrf()
+                .disable()
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers("/api/auth/verify/**",
+                            "/api/auth/login", "/api/auth/signup",
+                            "/api/auth/refresh/token").permitAll();
+                    auth.anyRequest().authenticated();
+                })
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(authenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .build();
+    }
 
-	@Bean
-	BCryptPasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
+    @Bean
+    BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-	@Bean
-	DaoAuthenticationProvider authenticationProvider() {
-		DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-		authenticationProvider.setUserDetailsService(userDetailsService);
-		authenticationProvider.setPasswordEncoder(passwordEncoder());
-		return authenticationProvider;
-	}
+    @Bean
+    DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
+        authenticationProvider.setUserDetailsService(userDetailsService);
+        authenticationProvider.setPasswordEncoder(passwordEncoder());
+        return authenticationProvider;
+    }
 
-	@Bean
-	AuthenticationManager authenticationManager() throws Exception {
-		return authenticationConfiguration.getAuthenticationManager();
-	}
+    @Bean
+    AuthenticationManager authenticationManager() throws Exception {
+        return authenticationConfiguration.getAuthenticationManager();
+    }
 }
