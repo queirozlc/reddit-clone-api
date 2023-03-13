@@ -17,7 +17,7 @@ import java.util.UUID;
 public class SubRedditRequestBody {
     @NotBlank(message = "Field name is required.")
     private String name;
-    @Pattern(regexp = "(?:^| )(/?r/[a-zA-Z]+)", message = "Invalid uri. Try something like that: 'r/memes'.")
+    @Pattern(regexp = "(?:^| )(r/[a-zA-Z_+]+)", message = "Invalid uri. Try something like that: 'r/memes'.")
     @NotBlank(message = "Field uri is required")
     private String uri;
     @NotBlank(message = "Field description is required.")
