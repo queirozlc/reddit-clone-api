@@ -19,7 +19,7 @@ public class CategoryRequestBody {
     @NotBlank(message = "Category name is required.")
     private String name;
     @NotBlank(message = "Category uri is required.")
-    @Pattern(regexp = "(?:^| )(/?t/[a-zA-Z]+)", message = "Invalid uri. Try something like that: 't/gaming'.")
+    @Pattern(regexp = "(?:^| )(t/[a-zA-Z_+]+)", message = "Invalid uri. Try something like that: 't/gaming'.")
     private String uri;
     private String description;
     private UUID categoryParentId;
