@@ -51,6 +51,8 @@ class SubRedditServiceTest {
     static User user;
     static Optional<User> userOptional;
     static Post post;
+    static Category category;
+    static Optional<Category> categoryOptional;
     static Optional<Post> postOptional;
     static Optional<SubReddit> subRedditOptional;
     static SubRedditRequestBody subRedditRequestBody;
@@ -78,7 +80,7 @@ class SubRedditServiceTest {
 
     @Test
     void shouldCreateSubRedditSuccessfully() {
-        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class), any(Category.class))).thenReturn(subReddit);
+        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class), any(Category.class), any(User.class))).thenReturn(subReddit);
         when(userRepository.findById(any(UUID.class))).thenReturn(userOptional);
         when(subRedditRepository.save(any(SubReddit.class))).thenReturn(subReddit);
         when(subRedditMapper.toSubRedditResponseBody(any(SubReddit.class))).thenReturn(subRedditResponseBody);
@@ -88,20 +90,23 @@ class SubRedditServiceTest {
         assertEquals(SubRedditResponseBody.class, response.getClass());
         assertNotNull(response);
         assertEquals(user.getUsername(), response.getOwnerUsername());
-        verify(subRedditMapper, times(1)).toSubReddit(subRedditRequestBody);
+        verify(subRedditMapper, times(1)).toSubReddit(subRedditRequestBody, category, user);
         verify(userRepository, times(1)).findById(any(UUID.class));
         verify(subRedditRepository, times(1)).save(subReddit);
     }
 
     @Test
     void createSubRedditShouldThrowBadRequestExceptionWhenUserNotFound() {
-        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class))).thenReturn(subReddit);
+        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class),
+                any(Category.class),
+                any(User.class)))
+                .thenReturn(subReddit).thenReturn(subReddit);
         when(userRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
         assertThrowsExactly(BadRequestException.class, () -> subRedditService.createSubReddit(subRedditRequestBody),
                 USER_NOT_FOUND);
         verifyNoInteractions(subRedditRepository);
-        verify(subRedditMapper, times(1)).toSubReddit(subRedditRequestBody);
+        verify(subRedditMapper, times(1)).toSubReddit(subRedditRequestBody, category, user);
         verify(userRepository, times(1)).findById(ID);
         verify(subRedditMapper, never()).toSubRedditResponseBody(any(SubReddit.class));
     }
@@ -135,7 +140,10 @@ class SubRedditServiceTest {
 
     @Test
     void shouldUpdateSubRedditSuccessfully() {
-        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class))).thenReturn(subReddit);
+        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class),
+                any(Category.class),
+                any(User.class)))
+                .thenReturn(subReddit).thenReturn(subReddit);
         when(subRedditRepository.findById(any(UUID.class))).thenReturn(subRedditOptional);
         when(subRedditRepository.save(any(SubReddit.class))).thenReturn(subReddit);
         when(subRedditMapper.toSubRedditResponseBody(any(SubReddit.class))).thenReturn(subRedditResponseBody);
@@ -145,7 +153,7 @@ class SubRedditServiceTest {
         assertNotNull(response);
         assertEquals(SubRedditResponseBody.class, response.getClass());
         assertEquals(user.getUsername(), response.getOwnerUsername());
-        verify(subRedditMapper, times(1)).toSubReddit(subRedditRequestBody);
+        verify(subRedditMapper, times(1)).toSubReddit(subRedditRequestBody, category, user);
         verify(subRedditRepository, times(1)).findById(ID);
         verify(subRedditRepository, times(1)).save(subReddit);
         verify(subRedditMapper, times(1)).toSubRedditResponseBody(subReddit);
@@ -153,7 +161,10 @@ class SubRedditServiceTest {
 
     @Test
     void updateSubRedditShouldThrowBadRequestExceptionWhenSubRedditNotFound() {
-        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class))).thenReturn(subReddit);
+        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class),
+                any(Category.class),
+                any(User.class)))
+                .thenReturn(subReddit).thenReturn(subReddit);
         when(subRedditRepository.findById(any(UUID.class))).thenReturn(Optional.empty());
 
         assertThrowsExactly(
@@ -163,14 +174,17 @@ class SubRedditServiceTest {
         );
 
         verify(subRedditRepository, times(1)).findById(ID);
-        verify(subRedditMapper, times(1)).toSubReddit(subRedditRequestBody);
+        verify(subRedditMapper, times(1)).toSubReddit(subRedditRequestBody, category, user);
         verify(subRedditMapper, never()).toSubRedditResponseBody(any(SubReddit.class));
         verify(subRedditRepository, never()).save(any(SubReddit.class));
     }
 
     @Test
     void updateSubRedditShouldThrowUnauthorizedExceptionWhenUserIsNotAuthor() {
-        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class))).thenReturn(subRedditRandomUser);
+        when(subRedditMapper.toSubReddit(any(SubRedditRequestBody.class),
+                any(Category.class),
+                any(User.class)))
+                .thenReturn(subReddit).thenReturn(subReddit);
         when(subRedditRepository.findById(any(UUID.class))).thenReturn(subRedditOptional);
 
         assertThrowsExactly(
@@ -180,7 +194,7 @@ class SubRedditServiceTest {
                 YOU_DO_NOT_HAVE_ACCESS_TO_CHANGE_SUBREDDIT_OWNER);
 
         verify(subRedditRepository, times(1)).findById(ID);
-        verify(subRedditMapper, times(1)).toSubReddit(subRedditRequestBody);
+        verify(subRedditMapper, times(1)).toSubReddit(subRedditRequestBody, category, user);
         verify(subRedditMapper, never()).toSubRedditResponseBody(any(SubReddit.class));
         verify(subRedditRepository, never()).save(any(SubReddit.class));
     }
@@ -217,6 +231,19 @@ class SubRedditServiceTest {
 
         userOptional = Optional.of(user);
 
+        category = Category
+                .builder()
+                .uri("t/gaming")
+                .id(ID)
+                .user(user)
+                .name("Gaming")
+                .description("All of gaming world.")
+                .createdAt(Instant.now())
+                .parent(null)
+                .childrenCategories(null)
+                .subReddits(null)
+                .build();
+
         subReddit = SubReddit
                 .builder()
                 .id(ID)
@@ -243,6 +270,7 @@ class SubRedditServiceTest {
         subRedditOptional = Optional.of(subReddit);
         subRedditPage = new PageImpl<>(List.of(subReddit));
         subReddits = List.of(subReddit);
+        category.setSubReddits(subReddits);
 
         subRedditRequestBody = SubRedditRequestBody
                 .builder()
