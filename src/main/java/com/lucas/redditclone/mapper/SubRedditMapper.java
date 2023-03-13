@@ -31,7 +31,7 @@ public interface SubRedditMapper {
     SubRedditResponseBody toSubRedditResponseBody(SubReddit subReddit);
 
     default Long mapPosts(List<Post> posts) {
-        return (long) posts.size();
+        return posts != null && !posts.isEmpty() ? (long) posts.size() : 0;
     }
 
     default String getOwnerUsername(SubReddit subReddit) {
